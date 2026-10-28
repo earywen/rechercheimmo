@@ -379,7 +379,7 @@ function renderDetail(item) {
         ${dealbreakersHtml ? `<div class="alerts-list">${dealbreakersHtml}</div>` : ""}
         ${warningsHtml || strengthsHtml ? `<div class="highlights-strip">${warningsHtml}${strengthsHtml}</div>` : ""}
 
-        <div class="editorial-grid">
+        <div class="editorial-grid synthese-grid">
           <div class="editorial-section">
             <div class="section-header">
               <h3>Score 360° &amp; Synthèse IA</h3>
@@ -400,22 +400,22 @@ function renderDetail(item) {
             </div>
             <div id="propertyMap"></div>
             <div style="display:flex; gap:0.85rem; flex-wrap:wrap; font-size:0.8rem; color:var(--ink-muted);">
-              <span><strong>Bleu :</strong> Parcelle (${cad.section || ""}${cad.numero || ""})</span>
+              <span><strong>Bleu :</strong> Parcelle ${cad.section ? `(${cad.section}${cad.numero})` : "&amp; Bien"}</span>
               <span><strong>Vert :</strong> Ventes DVF</span>
               <span><strong>Violet :</strong> Arrêts Astuce</span>
               <span><strong>Rouge :</strong> Marnières 76</span>
             </div>
           </div>
-        </div>
 
-        <div class="editorial-section" style="padding-top:0.5rem; border-top:1px solid var(--border);">
-          <div class="section-header">
-            <h3>Décryptage de l'Annonce vs Open Data</h3>
-            <span class="tag">Vérification automatique</span>
+          <div class="editorial-section span-2-laptop">
+            <div class="section-header">
+              <h3>Décryptage de l'Annonce vs Open Data</h3>
+              <span class="tag">Vérification auto</span>
+            </div>
+            <ul style="display:flex; flex-direction:column; gap:0.65rem; padding-left:1.2rem; font-size:0.88rem; color:var(--ink);">
+              ${(ai.ad_decryption || []).map((pt) => `<li>${pt}</li>`).join("")}
+            </ul>
           </div>
-          <ul style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:0.5rem 2rem; padding-left:1.2rem; font-size:0.88rem; color:var(--ink);">
-            ${(ai.ad_decryption || []).map((pt) => `<li>${pt}</li>`).join("")}
-          </ul>
         </div>
       </section>
 

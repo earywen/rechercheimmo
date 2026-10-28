@@ -67,7 +67,7 @@ small {
 }
 
 p, li {
-  max-width: 68ch;
+  max-width: 72ch;
   text-wrap: pretty;
 }
 
@@ -224,7 +224,7 @@ summary:focus-visible {
 /* Main Workspace Layout */
 .workspace {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 360px 1fr;
   min-height: calc(100vh - 64px);
 }
 
@@ -382,19 +382,20 @@ summary:focus-visible {
   font-weight: 600;
 }
 
-/* Detail Panel — Structured Decision Sheet with Thematic Tabs */
+/* Detail Panel — Full-Width Responsive Sheet (1080p, 2K & 4K ready) */
 .main-panel {
   background: var(--surface);
   padding: 1.5rem 2.25rem;
   overflow-y: auto;
   max-height: calc(100vh - 64px);
+  width: 100%;
 }
 
 .dossier-sheet {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  max-width: 1280px;
+  width: 100%;
 }
 
 .hero-header {
@@ -563,11 +564,37 @@ summary:focus-visible {
   color: var(--ok-ink);
 }
 
-/* Two-Column Thematic Grids inside Tabs */
+/* Multi-Column Thematic Grids inside Tabs (2 cols on Laptop, 3 cols on 2K for Tab 1) */
 .editorial-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2.25rem;
+  width: 100%;
+  align-items: start;
+}
+
+.editorial-grid.synthese-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.editorial-grid.synthese-grid > .span-2-laptop {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1750px) {
+  .editorial-grid.synthese-grid {
+    grid-template-columns: 1fr 1fr 1.15fr;
+  }
+  .editorial-grid.synthese-grid > .span-2-laptop {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 1100px) {
+  .editorial-grid,
+  .editorial-grid.synthese-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .editorial-section {
@@ -605,7 +632,7 @@ summary:focus-visible {
 /* Map */
 #propertyMap {
   width: 100%;
-  height: 360px;
+  height: 410px;
   border-radius: 6px;
   border: 1px solid var(--border);
   z-index: 1;
