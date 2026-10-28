@@ -64,9 +64,9 @@ function scoreClass(score) {
 }
 
 function barColor(score) {
-  if (score >= 72) return "#166534";
-  if (score >= 52) return "#b45309";
-  return "#991b1b";
+  if (score >= 72) return "var(--ok-bar)";
+  if (score >= 52) return "var(--warn-bar)";
+  return "var(--danger-bar)";
 }
 
 /* Native <dialog> light-dismiss fallback for browsers without closedBy */
@@ -648,9 +648,10 @@ function initPropertyMap(item) {
   // 1. Cadastral parcel polygon via Leaflet GeoJSON with style() and onEachFeature() per Context7 Leaflet docs
   const parcelGeom = enr.cadastre?.parcel_geometry;
   if (parcelGeom) {
+    const parcelColor = isDarkModeActive() ? "#60a5fa" : "#1d4ed8";
     L.geoJSON(parcelGeom, {
       style() {
-        return { color: "#0f4c3a", weight: 3, fillColor: "#0f4c3a", fillOpacity: 0.2 };
+        return { color: parcelColor, weight: 3, fillColor: parcelColor, fillOpacity: 0.22 };
       },
       onEachFeature(_feature, layer) {
         layer.bindPopup(

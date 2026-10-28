@@ -1,4 +1,4 @@
-/* Recherche Immo — Architectural & Editorial Cartography Design System (Light & Dark Mode via CSS light-dark()) */
+/* Recherche Immo — Swiss Precision & Editorial Cartography (Option 1: Bleu Outremer & Graphite) */
 :root {
   color-scheme: light dark;
 
@@ -9,26 +9,29 @@
     color-scheme: light;
   }
 
-  --bg: light-dark(#f1f5f9, #121514);
-  --surface: light-dark(#ffffff, #1a1e1c);
-  --surface-subtle: light-dark(#e2e8f0, #232825);
-  --border: light-dark(#cbd5e1, #323935);
-  --border-strong: light-dark(#94a3b8, #4b554f);
-  --ink: light-dark(#0f172a, #f1f5f3);
-  --ink-muted: light-dark(#475569, #a3b1aa);
-  --accent: light-dark(#0f4c3a, #4ade80);
-  --accent-hover: light-dark(#0a3629, #22c55e);
-  --accent-contrast: light-dark(#ffffff, #0a2016);
-  --accent-soft: light-dark(#e6f0ec, #163024);
-  --ok-bg: light-dark(#e6f4ea, #142e20);
-  --ok-ink: light-dark(#13532c, #86efac);
-  --ok-border: light-dark(#86efac, #22c55e);
-  --warn-bg: light-dark(#fef3c7, #33240b);
-  --warn-ink: light-dark(#78350f, #fcd34d);
-  --warn-border: light-dark(#fbbf24, #d97706);
-  --danger-bg: light-dark(#fee2e2, #381515);
-  --danger-ink: light-dark(#7f1d1d, #fca5a5);
-  --danger-border: light-dark(#f87171, #dc2626);
+  --bg: light-dark(#f3f4f6, #0b0f19);
+  --surface: light-dark(#ffffff, #111827);
+  --surface-subtle: light-dark(#e5e7eb, #1e293b);
+  --border: light-dark(#d1d5db, #263248);
+  --border-strong: light-dark(#9ca3af, #3b4b68);
+  --ink: light-dark(#0f172a, #f8fafc);
+  --ink-muted: light-dark(#475569, #94a3b8);
+  --accent: light-dark(#1d4ed8, #60a5fa);
+  --accent-hover: light-dark(#1e40af, #93c5fd);
+  --accent-contrast: light-dark(#ffffff, #090d16);
+  --accent-soft: light-dark(#eff6ff, #172554);
+  --ok-bg: light-dark(#ecfdf5, #062e22);
+  --ok-ink: light-dark(#065f46, #6ee7b7);
+  --ok-border: light-dark(#6ee7b7, #10b981);
+  --ok-bar: light-dark(#059669, #34d399);
+  --warn-bg: light-dark(#fffbeb, #331f06);
+  --warn-ink: light-dark(#92400e, #fcd34d);
+  --warn-border: light-dark(#fcd34d, #d97706);
+  --warn-bar: light-dark(#d97706, #fbbf24);
+  --danger-bg: light-dark(#fef2f2, #381111);
+  --danger-ink: light-dark(#991b1b, #fca5a5);
+  --danger-border: light-dark(#fca5a5, #ef4444);
+  --danger-bar: light-dark(#dc2626, #f87171);
   --radius: 8px;
 
   accent-color: var(--accent);
@@ -499,6 +502,19 @@ textarea:focus-visible {
   z-index: 1;
 }
 
+.leaflet-container .leaflet-control-attribution {
+  background: var(--surface) !important;
+  color: var(--ink-muted) !important;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  padding: 2px 6px !important;
+}
+
+.leaflet-container .leaflet-control-attribution a {
+  color: var(--accent) !important;
+  font-weight: 600;
+}
+
 /* Progress / Radar Bars */
 .axis-row {
   display: flex;
@@ -637,4 +653,15 @@ dialog::backdrop {
   margin-top: 0.25rem;
   transform: scale(1.15);
   accent-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

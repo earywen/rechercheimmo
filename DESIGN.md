@@ -1,20 +1,20 @@
 # DESIGN.md — Architectural & Editorial Cartography (Mode: Operate)
 
 ## 1. Visual Direction & Palette
-- **Concept**: *Carnet d'Architecte & Cadastre Normand* — une interface claire, haute lisibilité en extérieur sur mobile (lors des visites) comme sur grand écran, inspirée des plans d'architecte, des revues foncières et de la pierre/ardoise rouennaise.
+- **Concept**: *Swiss Precision & Cartographie Éditoriale (Bleu Outremer & Graphite)* — une interface analytique nette, haute lisibilité en extérieur sur mobile (lors des visites) comme sur grand écran en mode sombre, inspirée de la précision suisse (style Linear) et de la cartographie cadastrale.
 - **No AI Slop**: Zéro gradient violet/néon, zéro carte imbriquée dans une carte (`nested-cards`), zéro bordure latérale épaisse (`side-tab`), contrastes strictement conformes WCAG AA ($\ge 4.5:1$ pour le texte et les boutons).
 - **Palette Tokens (`color-scheme: light dark` & `light-dark()`)**:
-  - Fond principal (`--bg`): `light-dark(#f1f5f9, #121514)` (Ardoise claire de Seine / Ardoise minérale sombre)
-  - Surface / Panneaux (`--surface`): `light-dark(#ffffff, #1a1e1c)`
-  - Surface secondaire (`--surface-subtle`): `light-dark(#e2e8f0, #232825)`
-  - Bordures (`--border`): `light-dark(#cbd5e1, #323935)`
-  - Texte principal (`--ink`): `light-dark(#0f172a, #f1f5f3)` (Contraste > 14:1 dans les deux modes)
-  - Texte secondaire (`--ink-muted`): `light-dark(#475569, #a3b1aa)` (Contraste > 6.5:1 dans les deux modes)
-  - Accent primaire (`--accent`): `light-dark(#0f4c3a, #4ade80)` avec texte `--accent-contrast: light-dark(#ffffff, #0a2016)` (Contraste > 9.5:1 dans les deux modes)
-  - Statuts sémantiques (contraste AA garanti):
-    - Succès / Conforme (`--ok-bg` `#e6f4ea`, `--ok-ink` `#13532c`)
-    - Vigilance (`--warn-bg` `#fef3c7`, `--warn-ink` `#78350f`)
-    - Alerte Rouge / Dealbreaker (`--danger-bg` `#fee2e2`, `--danger-ink` `#7f1d1d`)
+  - Fond principal (`--bg`): `light-dark(#f3f4f6, #0b0f19)` (Zinc clair / Obsidienne ardoise sans dominante verte)
+  - Surface / Panneaux (`--surface`): `light-dark(#ffffff, #111827)`
+  - Surface secondaire (`--surface-subtle`): `light-dark(#e5e7eb, #1e293b)`
+  - Bordures (`--border`): `light-dark(#d1d5db, #263248)`
+  - Texte principal (`--ink`): `light-dark(#0f172a, #f8fafc)` (Contraste > 16:1 dans les deux modes)
+  - Texte secondaire (`--ink-muted`): `light-dark(#475569, #94a3b8)` (Contraste > 6.4:1 dans les deux modes)
+  - Accent primaire (`--accent`): `light-dark(#1d4ed8, #60a5fa)` (Bleu Outremer / Bleu Ciel Cobalt) avec texte `--accent-contrast: light-dark(#ffffff, #090d16)` (Contraste > 6.7:1 dans les deux modes)
+  - Statuts sémantiques (séparés de l'accent de marque, contraste AA garanti):
+    - Succès / Conforme (`--ok-bg` `light-dark(#ecfdf5, #062e22)`, `--ok-ink` `light-dark(#065f46, #6ee7b7)`)
+    - Vigilance (`--warn-bg` `light-dark(#fffbeb, #331f06)`, `--warn-ink` `light-dark(#92400e, #fcd34d)`)
+    - Alerte Rouge / Dealbreaker (`--danger-bg` `light-dark(#fef2f2, #381111)`, `--danger-ink` `light-dark(#991b1b, #fca5a5)`)
 
 ## 2. Typography & Hierarchy
 - **Échelle typographique franche** (ratio > 1.25× entre niveaux adjacents):
