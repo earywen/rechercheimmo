@@ -1,4 +1,4 @@
-/* Recherche Immo IA — Frontend Application Logic */
+/* Recherche Immo IA — Frontend Application Logic (Impeccable & Context7 Compliant) */
 
 let ALL_LISTINGS = [];
 let CURRENT_ID = null;
@@ -17,9 +17,9 @@ function scoreClass(score) {
 }
 
 function barColor(score) {
-  if (score >= 72) return "#22c55e";
-  if (score >= 52) return "#f59e0b";
-  return "#ef4444";
+  if (score >= 72) return "#166534";
+  if (score >= 52) return "#b45309";
+  return "#991b1b";
 }
 
 /* Native <dialog> light-dismiss fallback for browsers without closedBy */
@@ -65,9 +65,9 @@ async function loadInitialData() {
     selectListing(ALL_LISTINGS[0].id);
   } else {
     document.getElementById("detailContainer").innerHTML = `
-      <div class="card" style="text-align:center; padding: 3rem;">
-        <h3>Aucune annonce enregistrée</h3>
-        <p style="color: var(--text-muted); margin: 0.75rem 0 1.25rem;">Cliquez sur « + Analyser un bien » ou utilisez l'extension Chrome sur LeBonCoin / SeLoger / Bien'ici.</p>
+      <div class="dossier-sheet" style="text-align:center; padding: 3rem;">
+        <h2>Aucune annonce enregistrée</h2>
+        <p style="color: var(--ink-muted); margin: 0.75rem 0 1.25rem;">Cliquez sur « + Analyser un bien » ou utilisez l'extension Chrome sur LeBonCoin / SeLoger / Bien'ici.</p>
         <div><button class="btn btn-primary" onclick="document.getElementById('addListingDialog').showModal()">+ Analyser ma première maison</button></div>
       </div>
     `;
@@ -91,14 +91,14 @@ function renderSidebar() {
       const dpe = (item.dpe_letter || "?").toUpperCase();
 
       return `
-        <div class="listing-card ${isAct}" onclick="selectListing(${item.id})">
-          <div class="listing-card-top">
+        <div class="listing-item ${isAct}" onclick="selectListing(${item.id})">
+          <div class="listing-item-top">
             <div class="listing-title">${item.title}</div>
             <div class="score-badge ${sClass}">${item.score_total}/100</div>
           </div>
-          <div style="font-weight: 700; color: var(--primary); font-size: 0.95rem;">
+          <div style="font-weight: 750; color: var(--accent); font-size: 0.96rem;">
             ${fmtEur(item.price)}
-            <span style="font-weight: 400; color: var(--text-muted); font-size: 0.78rem;">
+            <span style="font-weight: 450; color: var(--ink-muted); font-size: 0.8rem;">
               (${fmtEur(item.true_monthly_cost)}/mois tout compris)
             </span>
           </div>
@@ -107,8 +107,8 @@ function renderSidebar() {
             ${item.land_m2 ? `<span class="tag">Terrain ${Math.round(item.land_m2)} m²</span>` : ""}
             <span class="tag">${item.bedrooms || "?"} ch</span>
             <span class="tag">DPE ${dpe}</span>
-            <span class="tag ${mMin <= 45 ? "tag-ok" : "tag-alert"}">🚌 Mme: ${mMin} min</span>
-            ${dbCount > 0 ? `<span class="tag tag-alert">⚠️ ${dbCount} alerte(s)</span>` : ""}
+            <span class="tag ${mMin <= 45 ? "tag-ok" : "tag-alert"}">Mme: ${mMin} min</span>
+            ${dbCount > 0 ? `<span class="tag tag-alert">${dbCount} alerte(s)</span>` : ""}
           </div>
         </div>
       `;
@@ -147,7 +147,7 @@ function renderDetail(item) {
       (ax) => `
       <div class="axis-row">
         <div class="axis-head">
-          <span>${ax.label} <small style="color:var(--text-muted)">(poids ${ax.weight}%)</small></span>
+          <span>${ax.label} <small style="color:var(--ink-muted)">(poids ${ax.weight}%)</small></span>
           <strong>${ax.score}/100</strong>
         </div>
         <div class="progress-track">
@@ -161,8 +161,7 @@ function renderDetail(item) {
   const dealbreakersHtml = (sco.dealbreakers || [])
     .map(
       (db) => `
-      <div class="alert-item alert-red">
-        <span>🚨</span>
+      <div class="notice-bar notice-red">
         <div><strong>DRAPEAU ROUGE — ${db.title} :</strong> ${db.detail}</div>
       </div>
     `
@@ -172,9 +171,8 @@ function renderDetail(item) {
   const warningsHtml = (sco.warnings || [])
     .map(
       (w) => `
-      <div class="alert-item alert-warn">
-        <span>⚠️</span>
-        <div>${w}</div>
+      <div class="notice-bar notice-warn">
+        <div><strong>Point de vigilance :</strong> ${w}</div>
       </div>
     `
     )
@@ -183,9 +181,8 @@ function renderDetail(item) {
   const strengthsHtml = (sco.strengths || [])
     .map(
       (st) => `
-      <div class="alert-item alert-green">
-        <span>✅</span>
-        <div>${st}</div>
+      <div class="notice-bar notice-green">
+        <div><strong>Atout :</strong> ${st}</div>
       </div>
     `
     )
@@ -212,7 +209,7 @@ function renderDetail(item) {
     .map(
       (w) => `
       <tr>
-        <td><strong>${w.poste}</strong><br/><small style="color:var(--text-muted)">${w.commentaire || ""}</small></td>
+        <td><strong>${w.poste}</strong><br/><small style="color:var(--ink-muted)">${w.commentaire || ""}</small></td>
         <td><span class="tag">${w.urgence || "Moyenne"}</span></td>
         <td>${fmtEur(w.budget_min)} – ${fmtEur(w.budget_max)}</td>
       </tr>
@@ -226,10 +223,10 @@ function renderDetail(item) {
   )
     .map(
       (q, idx) => `
-      <label class="checklist-item">
+      <label class="checklist-row">
         <input type="checkbox" ${q.checked ? "checked" : ""} onchange="toggleChecklistItem(${item.id}, ${idx}, this.checked)" />
         <div>
-          <strong style="color: var(--primary);">[${q.category || "Visite"}]</strong> ${q.question}
+          <strong style="color: var(--accent);">[${q.category || "Visite"}]</strong> ${q.question}
         </div>
       </label>
     `
@@ -241,342 +238,344 @@ function renderDetail(item) {
 
   const container = document.getElementById("detailContainer");
   container.innerHTML = `
-    <!-- HERO CARD -->
-    <div class="hero-card">
-      <div class="hero-main">
-        <div style="display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap; margin-bottom:0.35rem;">
-          <span class="score-badge ${scoreClass(item.score_total)}" style="font-size:1.1rem; height:36px; padding:0 0.75rem;">
-            Score ${item.score_total}/100
-          </span>
-          <span class="tag" style="font-size:0.82rem; font-weight:600;">${sco.verdict_badge || ""}</span>
-          <select onchange="updateListingStatus(${item.id}, this.value)" style="background:var(--bg-surface); color:var(--text); border:1px solid var(--border); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.82rem;">
-            ${["À étudier", "À visiter", "Visité", "Offre", "Écarté"]
-              .map((st) => `<option value="${st}" ${item.status === st ? "selected" : ""}>Statut : ${st}</option>`)
-              .join("")}
-          </select>
-        </div>
-        <h2>${item.title}</h2>
-        <div class="hero-address">
-          📍 ${item.address_resolved || item.address_input}
-          — <a href="${streetViewUrl}" target="_blank" style="color:var(--primary); text-decoration:underline;">Street View</a>
-          · <a href="${geoportailUrl}" target="_blank" style="color:var(--primary); text-decoration:underline;">Cadastre IGN</a>
-          ${item.source_url ? `· <a href="${item.source_url}" target="_blank" style="color:var(--primary); text-decoration:underline;">Annonce d'origine ↗</a>` : ""}
+    <article class="dossier-sheet">
+      <!-- HERO HEADER -->
+      <header class="hero-header">
+        <div>
+          <div style="display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap; margin-bottom:0.5rem;">
+            <span class="score-badge ${scoreClass(item.score_total)}" style="font-size:1.05rem; height:34px; padding:0 0.75rem;">
+              Score ${item.score_total}/100
+            </span>
+            <span class="tag" style="font-size:0.84rem; font-weight:650;">${sco.verdict_badge || ""}</span>
+            <select aria-label="Statut de suivi du bien" onchange="updateListingStatus(${item.id}, this.value)" style="background:var(--bg); color:var(--ink); border:1px solid var(--border-strong); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.84rem; font-weight:600;">
+              ${["À étudier", "À visiter", "Visité", "Offre", "Écarté"]
+                .map((st) => `<option value="${st}" ${item.status === st ? "selected" : ""}>Statut : ${st}</option>`)
+                .join("")}
+            </select>
+          </div>
+          <h2>${item.title}</h2>
+          <div class="hero-address">
+            ${item.address_resolved || item.address_input}
+            — <a href="${streetViewUrl}" target="_blank">Street View</a>
+            · <a href="${geoportailUrl}" target="_blank">Cadastre IGN</a>
+            ${item.source_url ? `· <a href="${item.source_url}" target="_blank">Annonce d'origine</a>` : ""}
+          </div>
         </div>
 
-        <div class="hero-kpis">
-          <div class="kpi-box">
-            <div class="kpi-label">Prix Affiché</div>
-            <div class="kpi-val">${fmtEur(item.price)}</div>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <button class="btn btn-primary" id="btnRunDeepAi" onclick="triggerDeepAiAudit(${item.id})">
+            Relancer l'Audit IA Approfondi (agy)
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="removeListing(${item.id})">
+            Supprimer cette fiche
+          </button>
+        </div>
+      </header>
+
+      <!-- ARCHITECTURAL LEDGER STRIP (Zero Nested Cards) -->
+      <div class="metrics-strip">
+        <div class="metric-cell">
+          <span class="metric-label">Prix Affiché</span>
+          <span class="metric-val">${fmtEur(item.price)}</span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-label">Prix / m² (vs DVF 76)</span>
+          <span class="metric-val">${fmtEur(dvf.listing_price_m2)}/m² <small style="font-size:0.8rem; color:var(--ink-muted); font-weight:500;">(DVF: ${fmtEur(dvf.median_price_m2)})</small></span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-label">Vrai Coût Mensuel</span>
+          <span class="metric-val" style="color:var(--accent);">${fmtEur(fin.true_monthly_cost)}/mois</span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-label">Surface &amp; Terrain</span>
+          <span class="metric-val">${item.surface_m2 || "?"} m² · ${Math.round(item.land_m2 || cad.contenance_m2 || 0)} m²</span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-label">Chambres &amp; DPE</span>
+          <span class="metric-val">${item.bedrooms || "?"} ch (${item.rooms || "?"} p) · <span class="dpe-badge dpe-${dpeLetter}">${dpeLetter}</span></span>
+        </div>
+      </div>
+
+      <!-- ALERTS & DEALBREAKERS -->
+      <div class="alerts-list">
+        ${dealbreakersHtml}
+        ${warningsHtml}
+        ${strengthsHtml}
+      </div>
+
+      <!-- SECTION 1: MOBILITÉ COUPLE & SCORING 360 -->
+      <div class="editorial-grid">
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Mobilité du Couple (Astuce Rouen &amp; Madrillet)</h3>
+            <span class="tag ${mme.is_dealbreaker ? "tag-alert" : "tag-ok"}">${mme.status_label || ""}</span>
           </div>
-          <div class="kpi-box">
-            <div class="kpi-label">Prix / m² (vs DVF)</div>
-            <div class="kpi-val">${fmtEur(dvf.listing_price_m2)}/m² <small style="font-size:0.76rem; color:var(--text-muted)">(DVF: ${fmtEur(dvf.median_price_m2)})</small></div>
+
+          <div class="commute-row">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <strong>Trajet Madame (Transport Astuce → 34 rue Cauchoise, Rouen)</strong>
+              <span style="font-size:1.25rem; font-weight:800; color:${mme.is_dealbreaker ? "var(--danger-ink)" : "var(--ok-ink)"};">${mme.duration_min || "?"} min</span>
+            </div>
+            <p style="font-size:0.88rem; color:var(--ink);">
+              <strong>Itinéraire matin (8h30) :</strong> ${mme.best_itinerary ? mme.best_itinerary.details : "Calcul en cours"}
+            </p>
+            ${
+              (mme.nearby_astuce_stops || []).length
+                ? `<div style="font-size:0.8rem; color:var(--ink-muted);">
+                    <strong>Arrêts Astuce accessibles à pied :</strong>
+                    ${mme.nearby_astuce_stops
+                      .slice(0, 4)
+                      .map((s) => `${s.stop_name} (${s.distance_m} m, lignes ${(s.lines || []).join(", ")})`)
+                      .join(" · ")}
+                  </div>`
+                : ""
+            }
           </div>
-          <div class="kpi-box">
-            <div class="kpi-label">Vrai Coût Mensuel</div>
-            <div class="kpi-val" style="color:var(--primary);">${fmtEur(fin.true_monthly_cost)}/mois</div>
+
+          <div class="commute-row">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <strong>Trajet Monsieur (Voiture → GINGER BURGEAP, Saint-Étienne-du-Rouvray)</strong>
+              <span style="font-size:1.15rem; font-weight:800; color:var(--accent);">${mr.duration_min || "?"} min (${mr.distance_km || "?"} km)</span>
+            </div>
+            <p style="font-size:0.84rem; color:var(--ink-muted);">${mr.bridge_note || ""}</p>
           </div>
-          <div class="kpi-box">
-            <div class="kpi-label">Surface &amp; Terrain</div>
-            <div class="kpi-val">${item.surface_m2 || "?"} m² · Terrain ${Math.round(item.land_m2 || cad.contenance_m2 || 0)} m²</div>
+        </div>
+
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Décomposition du Score 360°</h3>
+            <strong>${item.score_total}/100</strong>
           </div>
-          <div class="kpi-box">
-            <div class="kpi-label">Chambres &amp; DPE</div>
-            <div class="kpi-val">${item.bedrooms || "?"} ch (${item.rooms || "?"} p) · <span class="dpe-badge dpe-${dpeLetter}">${dpeLetter}</span></div>
+          <div style="display:flex; flex-direction:column; gap:0.75rem;">
+            ${axesHtml}
           </div>
         </div>
       </div>
 
-      <div style="display:flex; flex-direction:column; gap:0.5rem;">
-        <button class="btn btn-purple" id="btnRunDeepAi" onclick="triggerDeepAiAudit(${item.id})">
-          ✨ Relancer l'Audit IA Approfondi (<code>agy</code>)
-        </button>
-        <button class="btn btn-danger btn-sm" onclick="removeListing(${item.id})">
-          🗑️ Supprimer cette fiche
-        </button>
-      </div>
-    </div>
-
-    <!-- DEALBREAKERS & ALERTS -->
-    <div class="alerts-banner">
-      ${dealbreakersHtml}
-      ${warningsHtml}
-      ${strengthsHtml}
-    </div>
-
-    <!-- ROW 1: MOBILITÉ COUPLE & SCORING 360 -->
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">
-          <span>🚌 Mobilité du Couple (Réseau Astuce Rouen &amp; Voiture Madrillet)</span>
-          <span class="tag ${mme.is_dealbreaker ? "tag-alert" : "tag-ok"}">${mme.status_label || ""}</span>
+      <!-- SECTION 2: CARTE INTERACTIVE MULTI-COUCHES & AUDIT IA AGY -->
+      <div class="editorial-grid">
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Plan Cadastral, Marnières 76, Ventes DVF &amp; Arrêts Astuce</h3>
+            <small style="color:var(--ink-muted);">Marqueur déplaçable pour affiner l'adresse</small>
+          </div>
+          <div id="propertyMap"></div>
+          <div style="display:flex; gap:0.8rem; flex-wrap:wrap; font-size:0.8rem; color:var(--ink-muted);">
+            <span><strong>Bleu :</strong> Parcelle &amp; Bien</span>
+            <span><strong>Vert :</strong> Ventes DVF récentes</span>
+            <span><strong>Violet :</strong> Arrêts Astuce</span>
+            <span><strong>Rouge :</strong> Cavités / Marnières 76</span>
+          </div>
         </div>
 
-        <div style="background:var(--bg-surface); padding:0.9rem; border-radius:10px; border-left:4px solid ${mme.is_dealbreaker ? "var(--danger)" : "var(--success)"};">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-            <strong>👩 Trajet Madame (Transport Astuce → 34 rue Cauchoise, Rouen)</strong>
-            <span style="font-size:1.2rem; font-weight:800; color:${mme.is_dealbreaker ? "var(--danger)" : "var(--success)"};">${mme.duration_min || "?"} min</span>
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Expertise IA &amp; Stratégie de Négociation</h3>
+            <span class="tag">${ai.engine || "Analyse IA"}</span>
           </div>
-          <p style="font-size:0.84rem; color:var(--text); margin-bottom:0.45rem;">
-            <strong>Meilleur itinéraire matin (8h30) :</strong> ${mme.best_itinerary ? mme.best_itinerary.details : "Calcul en cours"}
+          <p style="font-size:0.92rem; color:var(--ink);">
+            <strong>Avis global :</strong> ${ai.executive_summary || "Analyse disponible."}
           </p>
+
+          <div>
+            <strong style="font-size:0.88rem; color:var(--accent);">Décryptage de l'annonce vs Open Data :</strong>
+            <ul style="padding-left:1.25rem; font-size:0.86rem; margin-top:0.35rem; color:var(--ink-muted);">
+              ${(ai.ad_decryption || []).map((pt) => `<li>${pt}</li>`).join("")}
+            </ul>
+          </div>
+
+          <div class="notice-bar notice-green" style="flex-direction:column; gap:0.4rem;">
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+              <strong>Prix d'offre recommandé : ${fmtEur(ai.negotiation_strategy?.target_offer_eur || fin.recommended_offer_price)}</strong>
+              <span class="tag tag-ok">Marge : -${fmtEur(fin.potential_discount_eur)} (-${fin.potential_discount_pct}%)</span>
+            </div>
+            <ul style="padding-left:1.2rem; font-size:0.85rem; color:var(--ink);">
+              ${(ai.negotiation_strategy?.arguments || []).map((arg) => `<li>${arg}</li>`).join("")}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: SIMULATEUR FINANCIER COMPLET & CHIFFRAGE TRAVAUX -->
+      <div class="editorial-grid">
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Simulateur du « Vrai Coût Mensuel Tout Compris »</h3>
+            <span class="tag">Apport ${fmtEur(fin.apport)} · ${fin.loan_years} ans à ${fin.interest_rate_pct}%</span>
+          </div>
+          <table class="data-table">
+            <tbody>
+              <tr><td>Prix d'achat affiché</td><td><strong>${fmtEur(fin.price)}</strong></td></tr>
+              <tr><td>Frais de notaire (~7,8% ancien)</td><td>${fmtEur(fin.notary_fees)}</td></tr>
+              <tr>
+                <td>Budget travaux retenu (modifiable)</td>
+                <td>
+                  <input type="number" aria-label="Budget travaux retenu" value="${fin.travaux_estimes}" onchange="updateFinancialField(${item.id}, 'travaux_estimes', this.value)" style="width:110px; background:var(--bg); color:var(--ink); border:1px solid var(--border-strong); padding:0.2rem 0.45rem; border-radius:4px;" /> €
+                </td>
+              </tr>
+              <tr><td><strong>Coût total de l'opération</strong></td><td><strong>${fmtEur(fin.total_project_cost)}</strong> (Emprunt : ${fmtEur(fin.loan_amount)})</td></tr>
+              <tr><td>Mensualité Crédit + Assurance</td><td><strong>${fmtEur(fin.monthly_mortgage)} / mois</strong></td></tr>
+              <tr>
+                <td>Taxe foncière mensualisée (${fin.taxe_fonciere_estimated ? "estimée" : "réelle"} : ${fmtEur(fin.taxe_fonciere_an)}/an)</td>
+                <td>+ ${fmtEur(fin.monthly_tax)} / mois</td>
+              </tr>
+              <tr><td>Énergie chauffage &amp; élec DPE (${fmtEur(fin.energy_an)}/an)</td><td>+ ${fmtEur(fin.monthly_energy)} / mois</td></tr>
+              <tr><td>Provision entretien / charges (${fmtEur(fin.charges_an)}/an)</td><td>+ ${fmtEur(fin.monthly_charges)} / mois</td></tr>
+              <tr style="background:var(--accent-soft); font-size:0.95rem;">
+                <td><strong>VRAI COÛT MENSUEL TOUT COMPRIS</strong></td>
+                <td><strong style="color:var(--accent); font-size:1.1rem;">${fmtEur(fin.true_monthly_cost)} / mois</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Postes de Travaux &amp; Diagnostic DPE ADEME</h3>
+            <span class="tag">Fourchette : ${fmtEur(ai.works_total_min)} – ${fmtEur(ai.works_total_max)}</span>
+          </div>
           ${
-            (mme.nearby_astuce_stops || []).length
-              ? `<div style="font-size:0.78rem; color:var(--text-muted);">
-                  <strong>Arrêts Astuce accessibles à pied :</strong>
-                  ${mme.nearby_astuce_stops
-                    .slice(0, 4)
-                    .map((s) => `${s.stop_name} (${s.distance_m} m, lignes ${(s.lines || []).join(", ")})`)
-                    .join(" · ")}
+            worksRows
+              ? `<table class="data-table">
+                  <thead><tr><th>Poste de travaux</th><th>Priorité</th><th>Estimation</th></tr></thead>
+                  <tbody>${worksRows}</tbody>
+                </table>`
+              : `<p style="font-size:0.88rem; color:var(--ink-muted);">Aucun gros poste de travaux détecté automatiquement.</p>`
+          }
+
+          ${
+            (dpeData.records || []).length
+              ? `<div style="padding-top:0.75rem; border-top:1px solid var(--border); font-size:0.84rem;">
+                  <strong>DPE ADEME trouvé à proximité (${dpeData.records[0].numero_dpe || "Base Nationale"}) :</strong><br/>
+                  Chauffage : ${dpeData.records[0].type_energie_chauffage || "—"} (${dpeData.records[0].type_generateur_chauffage || "—"})<br/>
+                  Isolation murs : <strong>${dpeData.records[0].qualite_isolation_murs || "—"}</strong> · Menuiseries : <strong>${dpeData.records[0].qualite_isolation_menuiseries || "—"}</strong> · Conso : ${dpeData.records[0].conso_kwh_m2_an || "?"} kWh/m²/an
                 </div>`
               : ""
           }
         </div>
+      </div>
 
-        <div style="background:var(--bg-surface); padding:0.9rem; border-radius:10px; border-left:4px solid var(--primary);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-            <strong>👨 Trajet Monsieur (Voiture → GINGER BURGEAP, Saint-Étienne-du-Rouvray)</strong>
-            <span style="font-size:1.15rem; font-weight:800; color:var(--primary);">${mr.duration_min || "?"} min (${mr.distance_km || "?"} km)</span>
+      <!-- SECTION 4: RISQUES 76 (MARNIÈRES / ARGILES / SEVESO) & VENTES NOTARIÉES DVF -->
+      <div class="editorial-grid">
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Risques Naturels &amp; Marnières 76</h3>
+            <span class="tag">Parcelle ${cad.section || ""}${cad.numero || ""} (${cad.contenance_m2 || "?"} m²)</span>
           </div>
-          <p style="font-size:0.82rem; color:var(--text-muted);">${mr.bridge_note || ""}</p>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <span>🎯 Décomposition du Score 360°</span>
-          <span><strong>${item.score_total}/100</strong></span>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:0.65rem;">
-          ${axesHtml}
-        </div>
-      </div>
-    </div>
-
-    <!-- ROW 2: CARTE INTERACTIVE MULTI-COUCHES & AUDIT IA AGY -->
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">
-          <span>🗺️ Carte Interactive (Parcelle, Marnières 76, Ventes DVF, Arrêts Astuce)</span>
-          <small style="color:var(--text-muted); font-weight:400;">Déplacez le marqueur bleu si besoin d'affiner l'adresse</small>
-        </div>
-        <div id="propertyMap"></div>
-        <div style="display:flex; gap:0.6rem; flex-wrap:wrap; font-size:0.76rem; color:var(--text-muted);">
-          <span>🔵 Bien analysé</span>
-          <span>🟢 Ventes DVF récentes</span>
-          <span>🟣 Arrêts bus/métro Astuce</span>
-          <span>🔴 Cavités / Marnières 76</span>
-          <span>🏢 Lieux de travail (Cauchoise &amp; Madrillet)</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <span>🤖 Expertise IA &amp; Stratégie de Négociation</span>
-          <span class="tag">${ai.engine || "Analyse IA"}</span>
-        </div>
-        <div style="background:var(--bg-surface); padding:0.85rem; border-radius:8px; font-size:0.88rem;">
-          <strong>Avis global :</strong> ${ai.executive_summary || "Analyse disponible."}
-        </div>
-
-        <div>
-          <strong style="font-size:0.85rem; color:var(--primary);">🔍 Décryptage de l'annonce vs Open Data :</strong>
-          <ul style="padding-left:1.2rem; font-size:0.83rem; margin-top:0.35rem; color:var(--text-muted);">
-            ${(ai.ad_decryption || []).map((pt) => `<li>${pt}</li>`).join("")}
-          </ul>
-        </div>
-
-        <div style="background:rgba(34, 197, 94, 0.1); border:1px solid rgba(34, 197, 94, 0.3); padding:0.85rem; border-radius:8px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-            <strong style="color:#4ade80;">🤝 Prix d'offre recommandé : ${fmtEur(ai.negotiation_strategy?.target_offer_eur || fin.recommended_offer_price)}</strong>
-            <span class="tag tag-ok">Économie : ${fmtEur(fin.potential_discount_eur)} (-${fin.potential_discount_pct}%)</span>
-          </div>
-          <ul style="padding-left:1.2rem; font-size:0.82rem; color:var(--text);">
-            ${(ai.negotiation_strategy?.arguments || []).map((arg) => `<li>${arg}</li>`).join("")}
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- ROW 3: SIMULATEUR FINANCIER COMPLET & CHIFFRAGE TRAVAUX -->
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">
-          <span>💶 Simulateur du « Vrai Coût Mensuel Tout Compris »</span>
-          <span class="tag">Apport ${fmtEur(fin.apport)} · ${fin.loan_years} ans à ${fin.interest_rate_pct}%</span>
-        </div>
-        <table class="data-table">
-          <tbody>
-            <tr><td>Prix d'achat affiché</td><td><strong>${fmtEur(fin.price)}</strong></td></tr>
-            <tr><td>Frais de notaire (~7,8% ancien)</td><td>${fmtEur(fin.notary_fees)}</td></tr>
-            <tr>
-              <td>Budget travaux retenu (modifiable)</td>
-              <td>
-                <input type="number" value="${fin.travaux_estimes}" onchange="updateFinancialField(${item.id}, 'travaux_estimes', this.value)" style="width:110px; background:var(--bg-surface); color:var(--text); border:1px solid var(--border); padding:0.2rem 0.4rem; border-radius:6px;" /> €
-              </td>
-            </tr>
-            <tr><td><strong>Coût total de l'opération</strong></td><td><strong>${fmtEur(fin.total_project_cost)}</strong> (Emprunt : ${fmtEur(fin.loan_amount)})</td></tr>
-            <tr><td>Mensualité Crédit + Assurance</td><td><strong>${fmtEur(fin.monthly_mortgage)} / mois</strong></td></tr>
-            <tr>
-              <td>Taxe foncière mensualisée (${fin.taxe_fonciere_estimated ? "estimée" : "réelle"} : ${fmtEur(fin.taxe_fonciere_an)}/an)</td>
-              <td>+ ${fmtEur(fin.monthly_tax)} / mois</td>
-            </tr>
-            <tr><td>Énergie chauffage &amp; élec DPE (${fmtEur(fin.energy_an)}/an)</td><td>+ ${fmtEur(fin.monthly_energy)} / mois</td></tr>
-            <tr><td>Provision entretien / charges (${fmtEur(fin.charges_an)}/an)</td><td>+ ${fmtEur(fin.monthly_charges)} / mois</td></tr>
-            <tr style="background:rgba(56, 189, 248, 0.12); font-size:0.95rem;">
-              <td><strong>VRAI COÛT MENSUEL TOUT COMPRIS</strong></td>
-              <td><strong style="color:var(--primary); font-size:1.1rem;">${fmtEur(fin.true_monthly_cost)} / mois</strong></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <span>🛠️ Postes de Travaux &amp; Caractéristiques DPE ADEME</span>
-          <span class="tag">Fourchette : ${fmtEur(ai.works_total_min)} – ${fmtEur(ai.works_total_max)}</span>
-        </div>
-        ${
-          worksRows
-            ? `<table class="data-table">
-                <thead><tr><th>Poste de travaux</th><th>Priorité</th><th>Estimation</th></tr></thead>
-                <tbody>${worksRows}</tbody>
-              </table>`
-            : `<p style="font-size:0.84rem; color:var(--text-muted);">Aucun gros poste de travaux détecté automatiquement.</p>`
-        }
-
-        ${
-          (dpeData.records || []).length
-            ? `<div style="background:var(--bg-surface); padding:0.75rem; border-radius:8px; font-size:0.8rem; margin-top:0.5rem;">
-                <strong>📄 DPE ADEME trouvé à proximité (${dpeData.records[0].numero_dpe || "Base Nationale"}) :</strong><br/>
-                Chauffage : ${dpeData.records[0].type_energie_chauffage || "—"} (${dpeData.records[0].type_generateur_chauffage || "—"})<br/>
-                Isolation murs : <strong>${dpeData.records[0].qualite_isolation_murs || "—"}</strong> · Menuiseries : <strong>${dpeData.records[0].qualite_isolation_menuiseries || "—"}</strong> · Conso : ${dpeData.records[0].conso_kwh_m2_an || "?"} kWh/m²/an
-              </div>`
-            : ""
-        }
-      </div>
-    </div>
-
-    <!-- ROW 4: RISQUES 76 (MARNIÈRES / ARGILES / SEVESO) & VENTES NOTARIÉES DVF -->
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">
-          <span>⚠️ Risques Naturels, Sous-Sol 76 (Marnières) &amp; Urbanisme</span>
-          <span class="tag">Parcelle ${cad.section || ""}${cad.numero || ""} (${cad.contenance_m2 || "?"} m²)</span>
-        </div>
-        <table class="data-table">
-          <tbody>
-            <tr>
-              <td><strong>Marnières &amp; Cavités souterraines (76)</strong></td>
-              <td>
-                <strong style="color:${geo.cavites_100m_count > 0 ? "var(--danger)" : geo.cavites_500m_count > 0 ? "var(--warning)" : "var(--success)"};">
-                  ${geo.cavites_100m_count || 0} à moins de 100 m · ${geo.cavites_500m_count || 0} dans les 500 m
-                </strong>
-                ${geo.nearest_cavite_m ? `(Plus proche à ${geo.nearest_cavite_m} m)` : "(Aucune à proximité)"}
-              </td>
-            </tr>
-            <tr>
-              <td><strong>Retrait-Gonflement des Argiles (Fissures)</strong></td>
-              <td>Aléa <strong>${geo.argiles_exposition || "Faible"}</strong> (Code ${geo.argiles_code || 1}/3)</td>
-            </tr>
-            <tr>
-              <td><strong>Inondation / PPRI &amp; Arrêtés CatNat</strong></td>
-              <td>${geo.inondation_risque ? "Présence de zonage inondation communal" : "Hors zone inondable majeure"} (${geo.catnat_count || 0} arrêtés CatNat sur la commune)</td>
-            </tr>
-            <tr>
-              <td><strong>Sites Industriels ICPE &amp; Seveso</strong></td>
-              <td>${geo.seveso_count || 0} site Seveso (&lt;2 km) · ${geo.icpe_1km_count || 0} installation(s) ICPE (&lt;1 km)</td>
-            </tr>
-            <tr>
-              <td><strong>Zonage PLU &amp; Ensoleillement PVGIS</strong></td>
-              <td>Zone PLU : <strong>${cad.plu_zone || "Urbaine"}</strong> (${cad.plu_libelle || ""}) · Solaire : ${sol.yearly_irradiation_kwh_m2 || "1150"} kWh/m²/an (${sol.sunshine_quality || ""})</td>
-            </tr>
-            <tr>
-              <td><strong>Nuisances Sonores (OSM)</strong></td>
-              <td>
-                ${
-                  (osm.noise_sources || []).length
-                    ? osm.noise_sources.map((n) => `${n.type} (${n.name}) à ${n.distance_m} m`).join(" · ")
-                    : "✅ Aucune voie ferrée, autoroute ou ligne HT à moins de 300 m"
-                }
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <span>🏛️ Ventes Notariées Réelles (DVF 76) autour du bien</span>
-          <span class="tag">${dvf.count || 0} ventes (${dvf.verdict || ""})</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; background:var(--bg-surface); padding:0.65rem 0.9rem; border-radius:8px; font-size:0.83rem;">
-          <span>Fourchette basse (Q25) : <strong>${fmtEur(dvf.q25_price_m2)}/m²</strong></span>
-          <span>Médiane DVF : <strong style="color:var(--primary);">${fmtEur(dvf.median_price_m2)}/m²</strong></span>
-          <span>Fourchette haute (Q75) : <strong>${fmtEur(dvf.q75_price_m2)}/m²</strong></span>
-        </div>
-        <div style="max-height:240px; overflow-y:auto;">
           <table class="data-table">
-            <thead>
-              <tr><th>Date</th><th>Voie</th><th>Prix net</th><th>Bâti</th><th>Terrain</th><th>€/m²</th><th>Dist.</th></tr>
-            </thead>
-            <tbody>${dvfRows || "<tr><td colspan='7'>Aucune vente trouvée dans ce rayon</td></tr>"}</tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ROW 5: ÉCOLES / COMMODITÉS & CHECKLIST DE VISITE INTERACTIVE -->
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">
-          <span>🏫 Écoles (IPS) &amp; Commerces de Proximité</span>
-          <span class="tag">${osm.walkability_label || ""}</span>
-        </div>
-        <div style="font-size:0.83rem;">
-          <strong>🛒 Commerces &amp; Santé (&lt; 1 km) :</strong>
-          <p style="color:var(--text-muted); margin:0.25rem 0 0.65rem;">
-            Supermarchés : ${(osm.supermarkets || []).slice(0, 3).map((s) => `${s.name} (${s.distance_m} m)`).join(", ") || "Aucun &lt; 1 km"}<br/>
-            Boulangeries / Frais : ${(osm.bakeries || []).slice(0, 3).map((s) => `${s.name} (${s.distance_m} m)`).join(", ") || "Aucune &lt; 1 km"}<br/>
-            Santé / Pharmacies : ${(osm.health || []).slice(0, 3).map((s) => `${s.name} (${s.distance_m} m)`).join(", ") || "Aucune &lt; 1 km"}
-          </p>
-        </div>
-        <div style="max-height:190px; overflow-y:auto;">
-          <table class="data-table">
-            <thead><tr><th>Établissement scolaire</th><th>Type</th><th>IPS (Niveau social)</th><th>Distance</th></tr></thead>
             <tbody>
-              ${(sch.schools || [])
-                .slice(0, 6)
-                .map(
-                  (s) => `
-                  <tr>
-                    <td>${s.nom}</td>
-                    <td>${s.type} (${s.statut})</td>
-                    <td><strong>${s.ips ? s.ips : "—"}</strong></td>
-                    <td>${s.distance_m} m</td>
-                  </tr>
-                `
-                )
-                .join("")}
+              <tr>
+                <td><strong>Marnières &amp; Cavités souterraines (76)</strong></td>
+                <td>
+                  <strong style="color:${geo.cavites_100m_count > 0 ? "var(--danger-ink)" : geo.cavites_500m_count > 0 ? "var(--warn-ink)" : "var(--ok-ink)"};">
+                    ${geo.cavites_100m_count || 0} à moins de 100 m · ${geo.cavites_500m_count || 0} dans les 500 m
+                  </strong>
+                  ${geo.nearest_cavite_m ? `(Plus proche à ${geo.nearest_cavite_m} m)` : "(Aucune à proximité)"}
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Retrait-Gonflement des Argiles (Fissures)</strong></td>
+                <td>Aléa <strong>${geo.argiles_exposition || "Faible"}</strong> (Code ${geo.argiles_code || 1}/3)</td>
+              </tr>
+              <tr>
+                <td><strong>Inondation / PPRI &amp; Arrêtés CatNat</strong></td>
+                <td>${geo.inondation_risque ? "Présence de zonage inondation communal" : "Hors zone inondable majeure"} (${geo.catnat_count || 0} arrêtés CatNat sur la commune)</td>
+              </tr>
+              <tr>
+                <td><strong>Sites Industriels ICPE &amp; Seveso</strong></td>
+                <td>${geo.seveso_count || 0} site Seveso (&lt;2 km) · ${geo.icpe_1km_count || 0} installation(s) ICPE (&lt;1 km)</td>
+              </tr>
+              <tr>
+                <td><strong>Zonage PLU &amp; Ensoleillement PVGIS</strong></td>
+                <td>Zone PLU : <strong>${cad.plu_zone || "Urbaine"}</strong> (${cad.plu_libelle || ""}) · Solaire : ${sol.yearly_irradiation_kwh_m2 || "1150"} kWh/m²/an (${sol.sunshine_quality || ""})</td>
+              </tr>
+              <tr>
+                <td><strong>Nuisances Sonores (OSM)</strong></td>
+                <td>
+                  ${
+                    (osm.noise_sources || []).length
+                      ? osm.noise_sources.map((n) => `${n.type} (${n.name}) à ${n.distance_m} m`).join(" · ")
+                      : "Aucune voie ferrée, autoroute ou ligne HT à moins de 300 m"
+                  }
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
+
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Ventes Notariées Réelles (DVF 76) autour du bien</h3>
+            <span class="tag">${dvf.count || 0} ventes (${dvf.verdict || ""})</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
+            <span>Bas (Q25) : <strong>${fmtEur(dvf.q25_price_m2)}/m²</strong></span>
+            <span>Médiane DVF : <strong style="color:var(--accent);">${fmtEur(dvf.median_price_m2)}/m²</strong></span>
+            <span>Haut (Q75) : <strong>${fmtEur(dvf.q75_price_m2)}/m²</strong></span>
+          </div>
+          <div style="max-height:240px; overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr><th>Date</th><th>Voie</th><th>Prix net</th><th>Bâti</th><th>Terrain</th><th>€/m²</th><th>Dist.</th></tr>
+              </thead>
+              <tbody>${dvfRows || "<tr><td colspan='7'>Aucune vente trouvée dans ce rayon</td></tr>"}</tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">
-          <span>📋 Fiche de Visite Interactive &amp; Notes du Couple</span>
-          <span class="tag">Cochez pendant l'appel ou la visite</span>
+      <!-- SECTION 5: ÉCOLES / COMMODITÉS & CHECKLIST DE VISITE INTERACTIVE -->
+      <div class="editorial-grid">
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Écoles (IPS) &amp; Commerces de Proximité</h3>
+            <span class="tag">${osm.walkability_label || ""}</span>
+          </div>
+          <div style="font-size:0.86rem;">
+            <strong>Commerces &amp; Santé (&lt; 1 km) :</strong>
+            <p style="color:var(--ink-muted); margin:0.25rem 0 0.65rem;">
+              Supermarchés : ${(osm.supermarkets || []).slice(0, 3).map((s) => `${s.name} (${s.distance_m} m)`).join(", ") || "Aucun &lt; 1 km"}<br/>
+              Boulangeries / Frais : ${(osm.bakeries || []).slice(0, 3).map((s) => `${s.name} (${s.distance_m} m)`).join(", ") || "Aucune &lt; 1 km"}<br/>
+              Santé / Pharmacies : ${(osm.health || []).slice(0, 3).map((s) => `${s.name} (${s.distance_m} m)`).join(", ") || "Aucune &lt; 1 km"}
+            </p>
+          </div>
+          <div style="max-height:190px; overflow-y:auto;">
+            <table class="data-table">
+              <thead><tr><th>Établissement scolaire</th><th>Type</th><th>IPS (Niveau social)</th><th>Distance</th></tr></thead>
+              <tbody>
+                ${(sch.schools || [])
+                  .slice(0, 6)
+                  .map(
+                    (s) => `
+                    <tr>
+                      <td>${s.nom}</td>
+                      <td>${s.type} (${s.statut})</td>
+                      <td><strong>${s.ips ? s.ips : "—"}</strong></td>
+                      <td>${s.distance_m} m</td>
+                    </tr>
+                  `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:0.45rem; max-height:220px; overflow-y:auto;">
-          ${checklistItems}
-        </div>
-        <div class="form-group" style="margin-top:0.4rem;">
-          <label>Vos notes personnelles (ressenti, défauts vus sur place, retour de Madame...)</label>
-          <textarea rows="3" onchange="updateFinancialField(${item.id}, 'user_notes', this.value)" placeholder="Notez ici vos observations de visite...">${item.user_notes || ""}</textarea>
+
+        <div class="editorial-section">
+          <div class="section-header">
+            <h3>Fiche de Visite Interactive &amp; Notes du Couple</h3>
+            <span class="tag">Cochez pendant l'appel ou la visite</span>
+          </div>
+          <div style="display:flex; flex-direction:column; max-height:220px; overflow-y:auto;">
+            ${checklistItems}
+          </div>
+          <div class="form-group" style="margin-top:0.5rem;">
+            <label for="visitNotesField">Vos notes personnelles (ressenti, défauts vus sur place, retour de Madame...)</label>
+            <textarea id="visitNotesField" rows="3" onchange="updateFinancialField(${item.id}, 'user_notes', this.value)" placeholder="Notez ici vos observations de visite...">${item.user_notes || ""}</textarea>
+          </div>
         </div>
       </div>
-    </div>
+    </article>
   `;
 
   initPropertyMap(item);
@@ -599,14 +598,19 @@ function initPropertyMap(item) {
 
   const enr = item.enrichment || {};
 
-  // 1. Cadastral parcel polygon if available
+  // 1. Cadastral parcel polygon via Leaflet GeoJSON with style() and onEachFeature() per Context7 Leaflet docs
   const parcelGeom = enr.cadastre?.parcel_geometry;
   if (parcelGeom) {
     L.geoJSON(parcelGeom, {
-      style: { color: "#38bdf8", weight: 3, fillColor: "#38bdf8", fillOpacity: 0.2 },
-    })
-      .bindPopup(`Parcelle cadastrale ${enr.cadastre.section}${enr.cadastre.numero} (${enr.cadastre.contenance_m2} m²)`)
-      .addTo(LEAFLET_MAP);
+      style() {
+        return { color: "#0f4c3a", weight: 3, fillColor: "#0f4c3a", fillOpacity: 0.2 };
+      },
+      onEachFeature(_feature, layer) {
+        layer.bindPopup(
+          `Parcelle cadastrale ${enr.cadastre.section}${enr.cadastre.numero} (${enr.cadastre.contenance_m2} m²)`
+        );
+      },
+    }).addTo(LEAFLET_MAP);
   }
 
   // 2. Main draggable property marker
@@ -632,8 +636,8 @@ function initPropertyMap(item) {
     if (s.lat && s.lon) {
       L.circleMarker([s.lat, s.lon], {
         radius: 6,
-        color: "#16a34a",
-        fillColor: "#22c55e",
+        color: "#14532d",
+        fillColor: "#16a34a",
         fillOpacity: 0.85,
       })
         .bindPopup(
@@ -648,25 +652,25 @@ function initPropertyMap(item) {
     if (st.lat && st.lon) {
       L.circleMarker([st.lat, st.lon], {
         radius: 7,
-        color: "#7e22ce",
-        fillColor: "#a855f7",
+        color: "#581c87",
+        fillColor: "#7e22ce",
         fillOpacity: 0.9,
       })
-        .bindPopup(`<strong>🚌 Arrêt Astuce : ${st.stop_name}</strong><br/>À ${st.distance_m} m (${st.walk_min} min à pied)<br/>Lignes : ${(st.lines || []).join(", ")}`)
+        .bindPopup(`<strong>Arrêt Astuce : ${st.stop_name}</strong><br/>À ${st.distance_m} m (${st.walk_min} min à pied)<br/>Lignes : ${(st.lines || []).join(", ")}`)
         .addTo(LEAFLET_MAP);
     }
   });
 
-  // 5. Cavités / Marnières 76 (Red warning circles + 60m safety perimeter)
+  // 5. Cavités / Marnières 76 (Red warning circles + 65m safety perimeter)
   (enr.georisques?.cavites_list || []).forEach((cav) => {
     if (cav.lat && cav.lon) {
       L.circle([cav.lat, cav.lon], {
         radius: 65,
-        color: "#ef4444",
-        fillColor: "#ef4444",
+        color: "#991b1b",
+        fillColor: "#dc2626",
         fillOpacity: 0.25,
       })
-        .bindPopup(`<strong>⚠️ Cavité / Marnière 76 (${cav.type})</strong><br/>ID: ${cav.id} — Distance: ${cav.distance_m} m`)
+        .bindPopup(`<strong>Cavité / Marnière 76 (${cav.type})</strong><br/>ID: ${cav.id} — Distance: ${cav.distance_m} m`)
         .addTo(LEAFLET_MAP);
     }
   });
@@ -719,7 +723,7 @@ async function triggerDeepAiAudit(id) {
   const btn = document.getElementById("btnRunDeepAi");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "⏳ Audit IA `agy` (Gemini Pro) en cours...";
+    btn.textContent = "Audit IA agy (Gemini Pro) en cours...";
   }
   try {
     const res = await fetch(`/api/listings/${id}/reanalyze`, {
@@ -736,7 +740,7 @@ async function triggerDeepAiAudit(id) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = "✨ Relancer l'Audit IA Approfondi (<code>agy</code>)";
+      btn.textContent = "Relancer l'Audit IA Approfondi (agy)";
     }
   }
 }
@@ -784,7 +788,7 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     const btn = document.getElementById("btnSubmitListing");
     btn.disabled = true;
-    btn.textContent = "⏳ Interrogation des API Open Data (DVF, Astuce, Géorisques, IGN)...";
+    btn.textContent = "Interrogation des API Open Data (DVF, Astuce, Géorisques, IGN)...";
 
     const fd = new FormData(e.target);
     const payload = {};
@@ -810,14 +814,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } finally {
       btn.disabled = false;
-      btn.textContent = "🚀 Lancer l'analyse 360° Open Data + IA";
+      btn.textContent = "Lancer l'analyse 360° Open Data + IA";
     }
   });
 
   document.getElementById("detectiveForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const box = document.getElementById("detectiveResults");
-    box.innerHTML = "<p style='color:var(--text-muted);'>Recherche dans les diagnostics ADEME DPE en cours...</p>";
+    box.innerHTML = "<p style='color:var(--ink-muted);'>Recherche dans les diagnostics ADEME DPE en cours...</p>";
     const res = await fetch("/api/detective-dpe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -831,7 +835,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const data = await res.json();
     const cands = data.candidates || [];
     if (!cands.length) {
-      box.innerHTML = "<p style='color:var(--warning);'>Aucun DPE correspondant trouvé avec ces critères exacts.</p>";
+      box.innerHTML = "<p style='color:var(--warn-ink);'>Aucun DPE correspondant trouvé avec ces critères exacts.</p>";
       return;
     }
     box.innerHTML = `
@@ -910,9 +914,9 @@ function renderComparisonTable() {
           <th>Prix/m² vs DVF</th>
           <th>Surface / Terrain</th>
           <th>Chambres / DPE</th>
-          <th>🚌 Trajet Madame</th>
-          <th>🚗 Trajet Monsieur</th>
-          <th>⚠️ Marnières 500m</th>
+          <th>Trajet Madame</th>
+          <th>Trajet Monsieur</th>
+          <th>Marnières 500m</th>
           <th>Offre conseillée</th>
         </tr>
       </thead>
@@ -923,17 +927,17 @@ function renderComparisonTable() {
           const fin = it.finance || {};
           return `
             <tr onclick="document.getElementById('compareDialog').close(); selectListing(${it.id});" style="cursor:pointer;">
-              <td><strong>${it.title}</strong><br/><small style="color:var(--text-muted)">${it.city || ""}</small></td>
+              <td><strong>${it.title}</strong><br/><small style="color:var(--ink-muted)">${it.city || ""}</small></td>
               <td><span class="score-badge ${scoreClass(it.score_total)}">${it.score_total}/100</span></td>
               <td><strong>${fmtEur(it.price)}</strong></td>
-              <td><strong style="color:var(--primary)">${fmtEur(it.true_monthly_cost)}/mois</strong></td>
+              <td><strong style="color:var(--accent)">${fmtEur(it.true_monthly_cost)}/mois</strong></td>
               <td>${fmtEur(dvf.listing_price_m2)}/m² <small>(${dvf.diff_vs_median_pct > 0 ? "+" : ""}${dvf.diff_vs_median_pct || 0}%)</small></td>
               <td>${it.surface_m2} m² / ${Math.round(it.land_m2 || 0)} m²</td>
               <td>${it.bedrooms} ch · DPE ${it.dpe_letter || "?"}</td>
               <td><span class="tag ${it.madame_transit_min <= 45 ? "tag-ok" : "tag-alert"}">${it.madame_transit_min} min</span></td>
               <td>${it.monsieur_drive_min} min</td>
               <td>${geo.cavites_500m_count || 0} (${geo.nearest_cavite_m ? geo.nearest_cavite_m + " m" : "ras"})</td>
-              <td><strong style="color:#4ade80">${fmtEur(fin.recommended_offer_price)}</strong></td>
+              <td><strong style="color:var(--ok-ink)">${fmtEur(fin.recommended_offer_price)}</strong></td>
             </tr>
           `;
         }).join("")}

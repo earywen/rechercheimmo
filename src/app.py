@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 import json
 import re
 from pathlib import Path
@@ -33,7 +34,21 @@ from src.enrichment_service import (
 from src.finance_and_scoring import compute_financials, compute_scoring_and_dealbreakers
 from src.mobility_service import ensure_astuce_index
 
-app = FastAPI(title="Recherche Immo — Métropole Rouen Normandie", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, ensure_dvf_index)
+    await loop.run_in_executor(None, ensure_astuce_index)
+    await seed_demo_listing_if_empty()
+    yield
+
+
+app = FastAPI(
+    title="Recherche Immo — Métropole Rouen Normandie",
+    version="1.1.0",
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -209,16 +224,6 @@ async def seed_demo_listing_if_empty() -> None:
         await _analyze_listing_pipeline(saved["id"], run_deep_ai=False)
     except Exception:
         pass
-
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    init_db()
-    # Warm up indices in background thread
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, ensure_dvf_index)
-    await loop.run_in_executor(None, ensure_astuce_index)
-    await seed_demo_listing_if_empty()
 
 
 @app.get("/", response_class=HTMLResponse)

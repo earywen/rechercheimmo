@@ -10,7 +10,7 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="brand-logo">RI</div>
+      <div class="brand-mark">RI</div>
       <div>
         <h1>Recherche Immo IA — Rouen Métropole</h1>
         <div class="brand-sub">Analyse 360° Open Data (DVF 76, Astuce GTFS, Géorisques Marnières, ADEME DPE, IGN) &amp; Expertise <code>agy</code></div>
@@ -25,17 +25,17 @@
 
     <div class="topbar-actions">
       <button class="btn btn-primary" id="btnOpenAddModal">+ Analyser un bien</button>
-      <button class="btn" id="btnOpenDetectiveModal">🕵️ Mode Détective DPE</button>
-      <button class="btn" id="btnOpenCompareModal">⚖️ Comparateur</button>
-      <button class="btn" id="btnOpenSettingsModal">⚙️ Critères</button>
+      <button class="btn" id="btnOpenDetectiveModal">Mode Détective DPE</button>
+      <button class="btn" id="btnOpenCompareModal">Comparateur</button>
+      <button class="btn" id="btnOpenSettingsModal">Critères</button>
     </div>
   </header>
 
   <main class="workspace">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <span style="font-weight: 700; font-size: 0.9rem;">Biens analysés (<span id="listingsCount">0</span>)</span>
-        <select id="filterStatus" style="background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.78rem;">
+        <h2 style="font-size: 1.05rem;">Biens analysés (<span id="listingsCount">0</span>)</h2>
+        <select id="filterStatus" aria-label="Filtrer par statut" style="background: var(--bg); color: var(--ink); border: 1px solid var(--border-strong); border-radius: 6px; padding: 0.25rem 0.5rem; font-size: 0.82rem;">
           <option value="ALL">Tous les statuts</option>
           <option value="À étudier">À étudier</option>
           <option value="À visiter">À visiter</option>
@@ -48,8 +48,8 @@
     </aside>
 
     <section class="main-panel" id="detailContainer">
-      <div class="card" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-        Chargement de l'analyse immobilière...
+      <div class="dossier-sheet" style="text-align: center; padding: 3rem; color: var(--ink-muted);">
+        <h2>Chargement du dossier immobilier...</h2>
       </div>
     </section>
   </main>
@@ -57,12 +57,12 @@
   <!-- MODAL 1: Ajouter / Analyser une annonce -->
   <dialog id="addListingDialog" closedby="any" aria-labelledby="addDialogTitle">
     <div class="dialog-header">
-      <h3 id="addDialogTitle">Analyser une nouvelle offre immobilière</h3>
-      <button class="btn btn-sm" data-close-dialog="addListingDialog">Fermer ✕</button>
+      <h2 id="addDialogTitle" style="font-size: 1.25rem;">Analyser une nouvelle offre immobilière</h2>
+      <button class="btn btn-sm" data-close-dialog="addListingDialog">Fermer</button>
     </div>
     <form id="addListingForm">
-      <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.7rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.82rem;">
-        💡 <strong>Astuce :</strong> Saisissez l'adresse (vous l'avez souvent !) et collez le texte de l'annonce : le prix, la surface, le terrain, les chambres et le DPE seront détectés automatiquement s'ils sont laissés vides.
+      <div class="notice-bar notice-green" style="margin-bottom: 1rem;">
+        <div><strong>Saisie rapide :</strong> Indiquez l'adresse du bien et collez le texte de l'annonce : le prix, la surface, le terrain, les chambres et le DPE seront extraits automatiquement s'ils sont laissés vides.</div>
       </div>
       <div class="form-grid">
         <div class="form-group" style="grid-column: span 2;">
@@ -145,7 +145,7 @@
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 0.65rem;">
         <button type="button" class="btn" data-close-dialog="addListingDialog">Annuler</button>
-        <button type="submit" class="btn btn-primary" id="btnSubmitListing">🚀 Lancer l'analyse 360° Open Data + IA</button>
+        <button type="submit" class="btn btn-primary" id="btnSubmitListing">Lancer l'analyse 360° Open Data + IA</button>
       </div>
     </form>
   </dialog>
@@ -153,23 +153,23 @@
   <!-- MODAL 2: Mode Détective ADEME DPE -->
   <dialog id="detectiveDialog" closedby="any" aria-labelledby="detectiveDialogTitle">
     <div class="dialog-header">
-      <h3 id="detectiveDialogTitle">🕵️ Mode Détective — Retrouver l'adresse cachée via la base ADEME DPE</h3>
-      <button class="btn btn-sm" data-close-dialog="detectiveDialog">Fermer ✕</button>
+      <h2 id="detectiveDialogTitle" style="font-size: 1.25rem;">Mode Détective — Retrouver l'adresse cachée via la base ADEME DPE</h2>
+      <button class="btn btn-sm" data-close-dialog="detectiveDialog">Fermer</button>
     </div>
-    <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 1rem;">
+    <p style="font-size: 0.88rem; color: var(--ink-muted); margin-bottom: 1rem;">
       Quand une agence masque l'adresse exacte d'une maison, croisez le code postal, la surface habitable et la classe DPE pour retrouver le diagnostic officiel ADEME et l'adresse postale exacte.
     </p>
     <form id="detectiveForm" class="form-grid">
       <div class="form-group">
-        <label>Code Postal *</label>
+        <label for="det_cp">Code Postal *</label>
         <input type="text" id="det_cp" value="76230" required />
       </div>
       <div class="form-group">
-        <label>Surface habitable (m²)</label>
+        <label for="det_surf">Surface habitable (m²)</label>
         <input type="number" id="det_surf" placeholder="Ex: 95" />
       </div>
       <div class="form-group">
-        <label>Classe DPE</label>
+        <label for="det_dpe">Classe DPE</label>
         <select id="det_dpe">
           <option value="">Toutes</option>
           <option value="A">A</option>
@@ -182,7 +182,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Classe GES</label>
+        <label for="det_ges">Classe GES</label>
         <select id="det_ges">
           <option value="">Toutes</option>
           <option value="A">A</option>
@@ -204,8 +204,8 @@
   <!-- MODAL 3: Comparateur côte à côte -->
   <dialog id="compareDialog" closedby="any" aria-labelledby="compareDialogTitle" style="width: min(1150px, 96vw);">
     <div class="dialog-header">
-      <h3 id="compareDialogTitle">⚖️ Comparateur Côte à Côte des Biens</h3>
-      <button class="btn btn-sm" data-close-dialog="compareDialog">Fermer ✕</button>
+      <h2 id="compareDialogTitle" style="font-size: 1.25rem;">Comparateur Côte à Côte des Biens</h2>
+      <button class="btn btn-sm" data-close-dialog="compareDialog">Fermer</button>
     </div>
     <div id="compareTableContainer" style="overflow-x: auto;"></div>
   </dialog>
@@ -213,41 +213,41 @@
   <!-- MODAL 4: Paramètres du Couple -->
   <dialog id="settingsDialog" closedby="any" aria-labelledby="settingsDialogTitle">
     <div class="dialog-header">
-      <h3 id="settingsDialogTitle">⚙️ Critères du Couple &amp; Paramètres Financiers</h3>
-      <button class="btn btn-sm" data-close-dialog="settingsDialog">Fermer ✕</button>
+      <h2 id="settingsDialogTitle" style="font-size: 1.25rem;">Critères du Couple &amp; Paramètres Financiers</h2>
+      <button class="btn btn-sm" data-close-dialog="settingsDialog">Fermer</button>
     </div>
     <form id="settingsForm">
       <div class="form-grid">
         <div class="form-group">
-          <label>Budget Cible (€)</label>
+          <label for="s_target_budget">Budget Cible (€)</label>
           <input type="number" id="s_target_budget" />
         </div>
         <div class="form-group">
-          <label>Plafond Max / Dealbreaker (€)</label>
+          <label for="s_max_budget">Plafond Max / Dealbreaker (€)</label>
           <input type="number" id="s_max_budget" />
         </div>
         <div class="form-group">
-          <label>Apport Personnel (€)</label>
+          <label for="s_apport">Apport Personnel (€)</label>
           <input type="number" id="s_apport" />
         </div>
         <div class="form-group">
-          <label>Durée du prêt (années)</label>
+          <label for="s_loan_years">Durée du prêt (années)</label>
           <input type="number" id="s_loan_years" />
         </div>
         <div class="form-group">
-          <label>Taux nominal crédit (%)</label>
+          <label for="s_interest_rate">Taux nominal crédit (%)</label>
           <input type="number" step="0.05" id="s_interest_rate" />
         </div>
         <div class="form-group">
-          <label>Taux assurance (%)</label>
+          <label for="s_insurance_rate">Taux assurance (%)</label>
           <input type="number" step="0.01" id="s_insurance_rate" />
         </div>
         <div class="form-group">
-          <label>Chambres minimum</label>
+          <label for="s_min_bedrooms">Chambres minimum</label>
           <input type="number" id="s_min_bedrooms" />
         </div>
         <div class="form-group">
-          <label>Trajet Madame Max Astuce (min)</label>
+          <label for="s_madame_max">Trajet Madame Max Astuce (min)</label>
           <input type="number" id="s_madame_max" />
         </div>
       </div>
