@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <script>
+    try {
+      document.querySelector('meta[name="color-scheme"]').content = localStorage.getItem("color-scheme") ?? "light dark";
+    } catch (e) {}
+  </script>
   <title>Recherche Immo IA — Métropole Rouen Normandie</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/static/style.css" />
@@ -28,6 +34,7 @@
       <button class="btn" id="btnOpenDetectiveModal">Mode Détective DPE</button>
       <button class="btn" id="btnOpenCompareModal">Comparateur</button>
       <button class="btn" id="btnOpenSettingsModal">Critères</button>
+      <button class="btn" id="btnThemeToggle" aria-label="Basculer entre le thème clair et le thème sombre">Mode sombre</button>
     </div>
   </header>
 

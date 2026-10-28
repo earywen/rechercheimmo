@@ -3,14 +3,14 @@
 ## 1. Visual Direction & Palette
 - **Concept**: *Carnet d'Architecte & Cadastre Normand* — une interface claire, haute lisibilité en extérieur sur mobile (lors des visites) comme sur grand écran, inspirée des plans d'architecte, des revues foncières et de la pierre/ardoise rouennaise.
 - **No AI Slop**: Zéro gradient violet/néon, zéro carte imbriquée dans une carte (`nested-cards`), zéro bordure latérale épaisse (`side-tab`), contrastes strictement conformes WCAG AA ($\ge 4.5:1$ pour le texte et les boutons).
-- **Palette Tokens**:
-  - Fond principal (`--bg`): `#f1f5f9` (Gris ardoise clair de Seine)
-  - Surface / Panneaux (`--surface`): `#ffffff` (Blanc pur)
-  - Surface secondaire (`--surface-subtle`): `#e2e8f0` (Ardoise douce)
-  - Bordures (`--border`): `#cbd5e1` (Trait fin architectural)
-  - Texte principal (`--ink`): `#0f172a` (Encre ardoise profonde, contraste > 15:1)
-  - Texte secondaire (`--ink-muted`): `#475569` (Gris ardoise soutenu, contraste > 7:1)
-  - Accent primaire (`--accent`): `#0f4c3a` (Vert forêt normand profond — texte `#ffffff` avec contraste > 9.5:1)
+- **Palette Tokens (`color-scheme: light dark` & `light-dark()`)**:
+  - Fond principal (`--bg`): `light-dark(#f1f5f9, #121514)` (Ardoise claire de Seine / Ardoise minérale sombre)
+  - Surface / Panneaux (`--surface`): `light-dark(#ffffff, #1a1e1c)`
+  - Surface secondaire (`--surface-subtle`): `light-dark(#e2e8f0, #232825)`
+  - Bordures (`--border`): `light-dark(#cbd5e1, #323935)`
+  - Texte principal (`--ink`): `light-dark(#0f172a, #f1f5f3)` (Contraste > 14:1 dans les deux modes)
+  - Texte secondaire (`--ink-muted`): `light-dark(#475569, #a3b1aa)` (Contraste > 6.5:1 dans les deux modes)
+  - Accent primaire (`--accent`): `light-dark(#0f4c3a, #4ade80)` avec texte `--accent-contrast: light-dark(#ffffff, #0a2016)` (Contraste > 9.5:1 dans les deux modes)
   - Statuts sémantiques (contraste AA garanti):
     - Succès / Conforme (`--ok-bg` `#e6f4ea`, `--ok-ink` `#13532c`)
     - Vigilance (`--warn-bg` `#fef3c7`, `--warn-ink` `#78350f`)

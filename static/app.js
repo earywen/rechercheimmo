@@ -4,6 +4,53 @@ let ALL_LISTINGS = [];
 let CURRENT_ID = null;
 let SETTINGS = {};
 let LEAFLET_MAP = null;
+let LEAFLET_TILE_LAYER = null;
+
+function isDarkModeActive() {
+  const meta = document.querySelector('meta[name="color-scheme"]');
+  const content = meta ? meta.content : "light dark";
+  if (content === "dark") return true;
+  if (content === "light") return false;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function getTileLayerUrl() {
+  return isDarkModeActive()
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+}
+
+function updateThemeButtonLabel() {
+  const btn = document.getElementById("btnThemeToggle");
+  if (!btn) return;
+  btn.textContent = isDarkModeActive() ? "Mode clair" : "Mode sombre";
+}
+
+function toggleColorScheme() {
+  const meta = document.querySelector('meta[name="color-scheme"]');
+  if (!meta) return;
+  const sysDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const sysScheme = sysDark ? "dark" : "light";
+  const currentRendered = isDarkModeActive() ? "dark" : "light";
+  const targetScheme = currentRendered === "dark" ? "light" : "dark";
+
+  try {
+    if (targetScheme !== sysScheme) {
+      localStorage.setItem("color-scheme", targetScheme);
+      meta.content = targetScheme;
+    } else {
+      localStorage.removeItem("color-scheme");
+      meta.content = "light dark";
+    }
+  } catch (e) {
+    meta.content = targetScheme;
+  }
+
+  updateThemeButtonLabel();
+  if (LEAFLET_TILE_LAYER) {
+    LEAFLET_TILE_LAYER.setUrl(getTileLayerUrl());
+  }
+}
 
 function fmtEur(n) {
   if (n === null || n === undefined || isNaN(n)) return "—";
@@ -591,8 +638,8 @@ function initPropertyMap(item) {
   }
 
   LEAFLET_MAP = L.map("propertyMap").setView([item.lat, item.lon], 15);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap · IGN · DVF · Géorisques",
+  LEAFLET_TILE_LAYER = L.tileLayer(getTileLayerUrl(), {
+    attribution: "© OpenStreetMap · CARTO · IGN · DVF · Géorisques",
     maxZoom: 19,
   }).addTo(LEAFLET_MAP);
 
@@ -755,7 +802,21 @@ async function removeListing(id) {
 /* Event Listeners */
 document.addEventListener("DOMContentLoaded", () => {
   setupDialogs();
+  updateThemeButtonLabel();
   loadInitialData();
+
+  const themeBtn = document.getElementById("btnThemeToggle");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", toggleColorScheme);
+  }
+  window.addEventListener("storage", (e) => {
+    if (e.key === "color-scheme") {
+      const meta = document.querySelector('meta[name="color-scheme"]');
+      if (meta) meta.content = e.newValue ?? "light dark";
+      updateThemeButtonLabel();
+      if (LEAFLET_TILE_LAYER) LEAFLET_TILE_LAYER.setUrl(getTileLayerUrl());
+    }
+  });
 
   document.getElementById("filterStatus").addEventListener("change", renderSidebar);
 
