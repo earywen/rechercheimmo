@@ -16,15 +16,15 @@ function isDarkModeActive() {
 }
 
 function getTileLayerUrl() {
-  return isDarkModeActive()
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  return "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 }
 
 function updateThemeButtonLabel() {
+  const dark = isDarkModeActive();
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
   const btn = document.getElementById("btnThemeToggle");
   if (!btn) return;
-  btn.textContent = isDarkModeActive() ? "Mode clair" : "Mode sombre";
+  btn.textContent = dark ? "Mode clair" : "Mode sombre";
 }
 
 function toggleColorScheme() {
@@ -228,9 +228,9 @@ function renderDetail(item) {
   const warningsHtml = (sco.warnings || [])
     .map(
       (w) => `
-      <div class="notice-bar notice-warn">
-        <div><strong>Vigilance :</strong> ${w}</div>
-      </div>
+      <span class="highlight-pill notice-warn">
+        <strong>Vigilance :</strong> ${w}
+      </span>
     `
     )
     .join("");
@@ -238,9 +238,9 @@ function renderDetail(item) {
   const strengthsHtml = (sco.strengths || [])
     .map(
       (st) => `
-      <div class="notice-bar notice-green">
-        <div><strong>Atout :</strong> ${st}</div>
-      </div>
+      <span class="highlight-pill notice-green">
+        <strong>Atout :</strong> ${st}
+      </span>
     `
     )
     .join("");
@@ -366,51 +366,37 @@ function renderDetail(item) {
           <span class="tab-count">${dvf.count || 0} ventes</span>
         </button>
         <button type="button" role="tab" class="tab-btn" data-tab="tab-quartier" aria-selected="false" onclick="switchDossierTab('tab-quartier')">
-          3. Trajets, Quartier &amp; Risques 76
+          3. Trajets &amp; Risques 76
         </button>
         <button type="button" role="tab" class="tab-btn" data-tab="tab-visite" aria-selected="false" onclick="switchDossierTab('tab-visite')">
-          4. Checklist Visite &amp; Notes
+          4. Visite &amp; Notes
           <span class="tab-count">${rawChecklist.length} pts</span>
         </button>
       </nav>
 
       <!-- ONGLET 1 : SYNTHÈSE, VERDICT IA & CARTE -->
       <section id="tab-synthese" role="tabpanel" class="tab-panel active">
-        <div class="alerts-list">
-          ${dealbreakersHtml}
-          ${warningsHtml}
-          ${strengthsHtml}
-        </div>
+        ${dealbreakersHtml ? `<div class="alerts-list">${dealbreakersHtml}</div>` : ""}
+        ${warningsHtml || strengthsHtml ? `<div class="highlights-strip">${warningsHtml}${strengthsHtml}</div>` : ""}
 
         <div class="editorial-grid">
           <div class="editorial-section">
             <div class="section-header">
-              <h3>Expertise IA &amp; Argumentaire d'Achat</h3>
-              <span class="tag">${ai.engine || "Analyse IA"}</span>
+              <h3>Score 360° &amp; Synthèse IA</h3>
+              <span class="tag">${(ai.engine || "").includes("agy") ? "Gemini Pro (agy)" : "Analyse IA"}</span>
             </div>
-            <p style="font-size:0.93rem; color:var(--ink);">
-              <strong>Synthèse :</strong> ${ai.executive_summary || "Analyse disponible."}
+            <p style="font-size:0.9rem; color:var(--ink);">
+              ${ai.executive_summary || "Analyse disponible."}
             </p>
-            <div>
-              <strong style="font-size:0.86rem; color:var(--accent);">Décryptage de l'annonce vs Open Data :</strong>
-              <ul style="padding-left:1.2rem; font-size:0.86rem; margin-top:0.35rem; color:var(--ink-muted);">
-                ${(ai.ad_decryption || []).map((pt) => `<li>${pt}</li>`).join("")}
-              </ul>
-            </div>
-
-            <div class="section-header" style="margin-top:0.5rem;">
-              <h3>Score 360° par Axe</h3>
-              <strong>${item.score_total}/100</strong>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:0.65rem;">
+            <div style="display:flex; flex-direction:column; gap:0.55rem; margin-top:0.25rem;">
               ${axesHtml}
             </div>
           </div>
 
           <div class="editorial-section">
             <div class="section-header">
-              <h3>Carte Cadastrale, DVF, Astuce &amp; Marnières 76</h3>
-              <small style="color:var(--ink-muted);">Déplacez le marqueur pour recalculer</small>
+              <h3>Carte Cadastrale &amp; Environnement</h3>
+              <span class="tag">Marqueur déplaçable</span>
             </div>
             <div id="propertyMap"></div>
             <div style="display:flex; gap:0.85rem; flex-wrap:wrap; font-size:0.8rem; color:var(--ink-muted);">
@@ -421,6 +407,16 @@ function renderDetail(item) {
             </div>
           </div>
         </div>
+
+        <div class="editorial-section" style="padding-top:0.5rem; border-top:1px solid var(--border);">
+          <div class="section-header">
+            <h3>Décryptage de l'Annonce vs Open Data</h3>
+            <span class="tag">Vérification automatique</span>
+          </div>
+          <ul style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:0.5rem 2rem; padding-left:1.2rem; font-size:0.88rem; color:var(--ink);">
+            ${(ai.ad_decryption || []).map((pt) => `<li>${pt}</li>`).join("")}
+          </ul>
+        </div>
       </section>
 
       <!-- ONGLET 2 : BUDGET, DVF & TRAVAUX -->
@@ -428,8 +424,8 @@ function renderDetail(item) {
         <div class="editorial-grid">
           <div class="editorial-section">
             <div class="section-header">
-              <h3>Simulateur du « Vrai Coût Mensuel »</h3>
-              <span class="tag">Apport ${fmtEur(fin.apport)} · ${fin.loan_years} ans à ${fin.interest_rate_pct}%</span>
+              <h3>Coût Mensuel Tout Compris</h3>
+              <span class="tag">${fin.loan_years} ans à ${fin.interest_rate_pct}%</span>
             </div>
             <table class="data-table">
               <tbody>
@@ -483,8 +479,8 @@ function renderDetail(item) {
             </div>
 
             <div class="section-header" style="margin-top:0.5rem;">
-              <h3>Ventes Notariées Réelles (DVF 76) autour du bien</h3>
-              <span class="tag">${dvf.count || 0} ventes (${dvf.verdict || ""})</span>
+              <h3>Ventes Notariées DVF (Secteur)</h3>
+              <span class="tag">${dvf.count || 0} actes (${dvf.verdict || ""})</span>
             </div>
             <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
               <span>Bas (Q25) : <strong>${fmtEur(dvf.q25_price_m2)}/m²</strong></span>
@@ -532,9 +528,9 @@ function renderDetail(item) {
               }
             </div>
             <div class="commute-row">
-              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.75rem;">
                 <strong>Monsieur (Voiture → GINGER BURGEAP, Saint-Étienne-du-Rouvray)</strong>
-                <span style="font-size:1.1rem; font-weight:800; color:var(--accent);">${mr.duration_min || "?"} min (${mr.distance_km || "?"} km)</span>
+                <span style="font-size:1.1rem; font-weight:800; color:var(--accent); white-space:nowrap; flex-shrink:0;">${mr.duration_min || "?"} min (${mr.distance_km || "?"} km)</span>
               </div>
               <p style="font-size:0.84rem; color:var(--ink-muted);">${mr.bridge_note || ""}</p>
             </div>
@@ -570,8 +566,8 @@ function renderDetail(item) {
 
           <div class="editorial-section">
             <div class="section-header">
-              <h3>Risques Naturels, Marnières 76 &amp; Urbanisme</h3>
-              <span class="tag">Parcelle ${cad.section || ""}${cad.numero || ""} (${cad.contenance_m2 || "?"} m²)</span>
+              <h3>Risques Naturels &amp; Marnières 76</h3>
+              <span class="tag">Terrain ${Math.round(cad.contenance_m2 || item.land_m2 || 0)} m²</span>
             </div>
             <table class="data-table">
               <tbody>
