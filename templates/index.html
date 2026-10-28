@@ -9,7 +9,7 @@
       document.querySelector('meta[name="color-scheme"]').content = localStorage.getItem("color-scheme") ?? "light dark";
     } catch (e) {}
   </script>
-  <title>Recherche Immo IA — Métropole Rouen Normandie</title>
+  <title>Recherche Immo — Rouen Métropole</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
@@ -18,21 +18,15 @@
     <div class="brand">
       <div class="brand-mark">RI</div>
       <div>
-        <h1>Recherche Immo IA — Rouen Métropole</h1>
-        <div class="brand-sub">Analyse 360° Open Data (DVF 76, Astuce GTFS, Géorisques Marnières, ADEME DPE, IGN) &amp; Expertise <code>agy</code></div>
+        <h1>Recherche Immo — Rouen Métropole</h1>
+        <div class="brand-sub">Objectif <strong id="pillBudget">250 000 €</strong> (Apport <strong id="pillApport">80 000 €</strong>) · Trajet Madame ≤ 45 min (Astuce)</div>
       </div>
-    </div>
-
-    <div class="topbar-pills">
-      <span class="pill">Budget cible : <strong id="pillBudget">250 000 €</strong> (Apport <strong id="pillApport">80 000 €</strong>)</span>
-      <span class="pill">Trajet Madame (Astuce → 34 rue Cauchoise) : <strong>≤ 45 min</strong></span>
-      <span class="pill">Trajet Monsieur (Voiture → Madrillet) : <strong>GINGER BURGEAP</strong></span>
     </div>
 
     <div class="topbar-actions">
       <button class="btn btn-primary" id="btnOpenAddModal">+ Analyser un bien</button>
-      <button class="btn" id="btnOpenDetectiveModal">Mode Détective DPE</button>
       <button class="btn" id="btnOpenCompareModal">Comparateur</button>
+      <button class="btn" id="btnOpenDetectiveModal">Détective DPE</button>
       <button class="btn" id="btnOpenSettingsModal">Critères</button>
       <button class="btn" id="btnThemeToggle" aria-label="Basculer entre le thème clair et le thème sombre">Mode sombre</button>
     </div>
@@ -41,9 +35,9 @@
   <main class="workspace">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h2 style="font-size: 1.05rem;">Biens analysés (<span id="listingsCount">0</span>)</h2>
-        <select id="filterStatus" aria-label="Filtrer par statut" style="background: var(--bg); color: var(--ink); border: 1px solid var(--border-strong); border-radius: 6px; padding: 0.25rem 0.5rem; font-size: 0.82rem;">
-          <option value="ALL">Tous les statuts</option>
+        <h2>Biens suivis (<span id="listingsCount">0</span>)</h2>
+        <select id="filterStatus" aria-label="Filtrer par statut" class="control-select">
+          <option value="ALL">Tous</option>
           <option value="À étudier">À étudier</option>
           <option value="À visiter">À visiter</option>
           <option value="Visité">Visité</option>
@@ -51,7 +45,7 @@
           <option value="Écarté">Écarté</option>
         </select>
       </div>
-      <div id="listingsList" style="display: flex; flex-direction: column; gap: 0.65rem;"></div>
+      <div id="listingsList" class="listings-stack"></div>
     </aside>
 
     <section class="main-panel" id="detailContainer">
@@ -61,20 +55,21 @@
     </section>
   </main>
 
-  <!-- MODAL 1: Ajouter / Analyser une annonce -->
+  <!-- MODAL 1: Ajouter / Analyser une annonce (Simplifié avec Progressive Disclosure) -->
   <dialog id="addListingDialog" closedby="any" aria-labelledby="addDialogTitle">
     <div class="dialog-header">
-      <h2 id="addDialogTitle" style="font-size: 1.25rem;">Analyser une nouvelle offre immobilière</h2>
+      <h2 id="addDialogTitle">Analyser une nouvelle offre</h2>
       <button class="btn btn-sm" data-close-dialog="addListingDialog">Fermer</button>
     </div>
     <form id="addListingForm">
-      <div class="notice-bar notice-green" style="margin-bottom: 1rem;">
-        <div><strong>Saisie rapide :</strong> Indiquez l'adresse du bien et collez le texte de l'annonce : le prix, la surface, le terrain, les chambres et le DPE seront extraits automatiquement s'ils sont laissés vides.</div>
-      </div>
       <div class="form-grid">
         <div class="form-group" style="grid-column: span 2;">
           <label for="f_address">Adresse du bien (ou Rue + Commune) *</label>
           <input type="text" id="f_address" name="address_input" placeholder="Ex: 45 rue de la République, 76230 Bois-Guillaume" required />
+        </div>
+        <div class="form-group">
+          <label for="f_price">Prix affiché (€) *</label>
+          <input type="number" id="f_price" name="price" placeholder="Ex: 245000" required />
         </div>
         <div class="form-group">
           <label for="f_type">Type de bien</label>
@@ -83,76 +78,80 @@
             <option value="Appartement">Appartement</option>
           </select>
         </div>
-        <div class="form-group">
-          <label for="f_price">Prix affiché (€) *</label>
-          <input type="number" id="f_price" name="price" placeholder="Ex: 245000" required />
-        </div>
-        <div class="form-group">
-          <label for="f_surface">Surface habitable (m²)</label>
-          <input type="number" step="0.5" id="f_surface" name="surface_m2" placeholder="Ex: 95" />
-        </div>
-        <div class="form-group">
-          <label for="f_land">Surface terrain / jardin (m²)</label>
-          <input type="number" id="f_land" name="land_m2" placeholder="Auto via Cadastre si vide" />
-        </div>
-        <div class="form-group">
-          <label for="f_rooms">Pièces</label>
-          <input type="number" id="f_rooms" name="rooms" placeholder="Ex: 5" />
-        </div>
-        <div class="form-group">
-          <label for="f_bedrooms">Chambres (min 2)</label>
-          <input type="number" id="f_bedrooms" name="bedrooms" placeholder="Ex: 3" />
-        </div>
-        <div class="form-group">
-          <label for="f_dpe">Lettre DPE</label>
-          <select id="f_dpe" name="dpe_letter">
-            <option value="">Auto (ADEME) / Non communiqué</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-            <option value="D">D</option>
-            <option value="E">E</option>
-            <option value="F">F</option>
-            <option value="G">G</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="f_ges">Lettre GES</label>
-          <select id="f_ges" name="ges_letter">
-            <option value="">Non communiqué</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-            <option value="D">D</option>
-            <option value="E">E</option>
-            <option value="F">F</option>
-            <option value="G">G</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="f_tf">Taxe foncière (€/an)</label>
-          <input type="number" id="f_tf" name="taxe_fonciere" placeholder="Estimée si vide" />
-        </div>
-        <div class="form-group">
-          <label for="f_travaux">Travaux estimés (€)</label>
-          <input type="number" id="f_travaux" name="travaux_estimes" placeholder="Auto-estimé si vide" />
-        </div>
         <div class="form-group" style="grid-column: span 2;">
-          <label for="f_title">Titre personnalisé (optionnel)</label>
-          <input type="text" id="f_title" name="title" placeholder="Ex: Maison brique jardin Sud Mont-Saint-Aignan" />
-        </div>
-        <div class="form-group" style="grid-column: span 2;">
-          <label for="f_url">Lien de l'annonce (LeBonCoin, SeLoger, Bien'ici, Agence...)</label>
+          <label for="f_url">Lien de l'annonce (LeBonCoin, SeLoger, Bien'ici...)</label>
           <input type="url" id="f_url" name="source_url" placeholder="https://..." />
         </div>
       </div>
+
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="f_desc">Texte complet de l'annonce (copier-coller)</label>
-        <textarea id="f_desc" name="description" rows="4" placeholder="Collez ici la description de l'annonce pour que l'IA décrypte les sous-entendus et extrait les infos..."></textarea>
+        <label for="f_desc">Texte de l'annonce (la surface, les chambres et le DPE en seront extraits automatiquement)</label>
+        <textarea id="f_desc" name="description" rows="4" placeholder="Collez ici la description de l'annonce..."></textarea>
       </div>
-      <div style="display: flex; justify-content: flex-end; gap: 0.65rem;">
+
+      <details class="progressive-details">
+        <summary>Compléter ou forcer les caractéristiques (Surface, Terrain, Chambres, DPE, Travaux...)</summary>
+        <div class="form-grid" style="margin-top: 0.9rem;">
+          <div class="form-group" style="grid-column: span 2;">
+            <label for="f_title">Titre personnalisé</label>
+            <input type="text" id="f_title" name="title" placeholder="Ex: Maison brique jardin Sud" />
+          </div>
+          <div class="form-group">
+            <label for="f_surface">Surface habitable (m²)</label>
+            <input type="number" step="0.5" id="f_surface" name="surface_m2" placeholder="Ex: 95" />
+          </div>
+          <div class="form-group">
+            <label for="f_land">Terrain / jardin (m²)</label>
+            <input type="number" id="f_land" name="land_m2" placeholder="Auto via Cadastre" />
+          </div>
+          <div class="form-group">
+            <label for="f_rooms">Pièces</label>
+            <input type="number" id="f_rooms" name="rooms" placeholder="Ex: 5" />
+          </div>
+          <div class="form-group">
+            <label for="f_bedrooms">Chambres (min 2)</label>
+            <input type="number" id="f_bedrooms" name="bedrooms" placeholder="Ex: 3" />
+          </div>
+          <div class="form-group">
+            <label for="f_dpe">Lettre DPE</label>
+            <select id="f_dpe" name="dpe_letter">
+              <option value="">Auto (ADEME / texte)</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+              <option value="G">G</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="f_ges">Lettre GES</label>
+            <select id="f_ges" name="ges_letter">
+              <option value="">Non communiqué</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+              <option value="G">G</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="f_tf">Taxe foncière (€/an)</label>
+            <input type="number" id="f_tf" name="taxe_fonciere" placeholder="Estimée si vide" />
+          </div>
+          <div class="form-group">
+            <label for="f_travaux">Travaux estimés (€)</label>
+            <input type="number" id="f_travaux" name="travaux_estimes" placeholder="Auto-estimé si vide" />
+          </div>
+        </div>
+      </details>
+
+      <div class="dialog-actions">
         <button type="button" class="btn" data-close-dialog="addListingDialog">Annuler</button>
-        <button type="submit" class="btn btn-primary" id="btnSubmitListing">Lancer l'analyse 360° Open Data + IA</button>
+        <button type="submit" class="btn btn-primary" id="btnSubmitListing">Lancer l'analyse 360°</button>
       </div>
     </form>
   </dialog>
@@ -160,11 +159,11 @@
   <!-- MODAL 2: Mode Détective ADEME DPE -->
   <dialog id="detectiveDialog" closedby="any" aria-labelledby="detectiveDialogTitle">
     <div class="dialog-header">
-      <h2 id="detectiveDialogTitle" style="font-size: 1.25rem;">Mode Détective — Retrouver l'adresse cachée via la base ADEME DPE</h2>
+      <h2 id="detectiveDialogTitle">Détective DPE — Retrouver une adresse masquée</h2>
       <button class="btn btn-sm" data-close-dialog="detectiveDialog">Fermer</button>
     </div>
     <p style="font-size: 0.88rem; color: var(--ink-muted); margin-bottom: 1rem;">
-      Quand une agence masque l'adresse exacte d'une maison, croisez le code postal, la surface habitable et la classe DPE pour retrouver le diagnostic officiel ADEME et l'adresse postale exacte.
+      Croisez le code postal, la surface et le DPE d'une annonce pour identifier l'adresse exacte dans la base nationale ADEME.
     </p>
     <form id="detectiveForm" class="form-grid">
       <div class="form-group">
@@ -202,7 +201,7 @@
         </select>
       </div>
       <div class="form-group" style="justify-content: flex-end;">
-        <button type="submit" class="btn btn-primary">Rechercher dans l'ADEME</button>
+        <button type="submit" class="btn btn-primary">Rechercher</button>
       </div>
     </form>
     <div id="detectiveResults" style="margin-top: 1rem;"></div>
@@ -211,7 +210,7 @@
   <!-- MODAL 3: Comparateur côte à côte -->
   <dialog id="compareDialog" closedby="any" aria-labelledby="compareDialogTitle" style="width: min(1150px, 96vw);">
     <div class="dialog-header">
-      <h2 id="compareDialogTitle" style="font-size: 1.25rem;">Comparateur Côte à Côte des Biens</h2>
+      <h2 id="compareDialogTitle">Comparateur Côte à Côte</h2>
       <button class="btn btn-sm" data-close-dialog="compareDialog">Fermer</button>
     </div>
     <div id="compareTableContainer" style="overflow-x: auto;"></div>
@@ -220,7 +219,7 @@
   <!-- MODAL 4: Paramètres du Couple -->
   <dialog id="settingsDialog" closedby="any" aria-labelledby="settingsDialogTitle">
     <div class="dialog-header">
-      <h2 id="settingsDialogTitle" style="font-size: 1.25rem;">Critères du Couple &amp; Paramètres Financiers</h2>
+      <h2 id="settingsDialogTitle">Critères du Couple &amp; Financement</h2>
       <button class="btn btn-sm" data-close-dialog="settingsDialog">Fermer</button>
     </div>
     <form id="settingsForm">
@@ -258,9 +257,9 @@
           <input type="number" id="s_madame_max" />
         </div>
       </div>
-      <div style="display: flex; justify-content: flex-end; gap: 0.65rem;">
+      <div class="dialog-actions">
         <button type="button" class="btn" data-close-dialog="settingsDialog">Annuler</button>
-        <button type="submit" class="btn btn-primary">Enregistrer les critères</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
       </div>
     </form>
   </dialog>

@@ -23,5 +23,13 @@
   - `h3` (Sous-groupes): `1.0rem` (16px), `font-weight: 600`
   - `body`: `0.9375rem` (15px), `font-variant-numeric: tabular-nums` sur toutes les données chiffrées (prix, $\text{m}^2$, distances, temps de trajet).
 
-## 3. Structural Principles
+## 3. Structural Principles & Information Architecture
 - **Flat Hierarchy (Zéro `nested-cards`)**: Les sections de la fiche de bien sont structurées par des filets horizontaux (`border-top: 1px solid var(--border)`), de l'espace blanc généreux et des grilles tabulaires propres, sans empiler de boîtes dans des boîtes.
+- **Progressive Disclosure par 4 Onglets Thématiques (`role="tablist"`)**:
+  - Au-dessus des onglets, un **En-tête de Décision fixe** présente les 4 indicateurs vitaux du couple : *Vrai Coût Mensuel*, *Prix & Offre Conseillée*, *Trajet Madame (Astuce)* et *Surface & DPE*.
+  - Les analyses détaillées sont réparties dans 4 onglets thématiques cohérents :
+    1. **Synthèse & Carte** (Alertes/Atouts, Verdict IA & Décryptage, Score 360°, Carte interactive multi-couches)
+    2. **Budget, DVF & Travaux** (Simulateur du Vrai Coût Mensuel, Postes de travaux, Stratégie de négociation, Ventes notariées DVF 76)
+    3. **Trajets, Quartier & Risques 76** (Mobilité Astuce/Voiture, Écoles IPS & Commerces, Marnières/Argiles/PLU/Solaire, Diagnostic DPE ADEME)
+    4. **Checklist Visite & Notes** (Questions agence à cocher + bloc-notes du couple)
+- **Formulaire d'ajout simplifié**: Seuls l'adresse, le prix, le lien et le texte de l'annonce sont affichés par défaut ; les 10 champs secondaires sont repliés dans un bloc `<details class="progressive-details">`.

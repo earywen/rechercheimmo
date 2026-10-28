@@ -72,7 +72,7 @@ p, li {
 }
 
 h1 {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 750;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -80,7 +80,7 @@ h1 {
 }
 
 h2 {
-  font-size: 1.7rem;
+  font-size: 1.65rem;
   font-weight: 750;
   letter-spacing: -0.025em;
   color: var(--ink);
@@ -88,7 +88,7 @@ h2 {
 }
 
 h3 {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.015em;
   color: var(--ink);
@@ -106,12 +106,12 @@ a:hover {
   color: var(--accent-hover);
 }
 
-/* Header */
+/* Header — Distilled & Focused */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.9rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -124,12 +124,12 @@ a:hover {
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.8rem;
 }
 
 .brand-mark {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius);
   background: var(--accent);
   color: var(--accent-contrast);
@@ -137,7 +137,7 @@ a:hover {
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1rem;
   letter-spacing: 0.02em;
 }
 
@@ -146,23 +146,7 @@ a:hover {
   color: var(--ink-muted);
 }
 
-.topbar-pills {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.pill {
-  background: var(--surface-subtle);
-  border: 1px solid var(--border);
-  padding: 0.3rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.82rem;
-  color: var(--ink-muted);
-}
-
-.pill strong {
+.brand-sub strong {
   color: var(--ink);
 }
 
@@ -172,12 +156,14 @@ a:hover {
   flex-wrap: wrap;
 }
 
-/* Buttons — High contrast WCAG AA compliant in both Light and Dark mode */
+/* Buttons & Controls */
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
-  padding: 0.5rem 0.95rem;
+  min-height: 38px;
+  padding: 0.45rem 0.9rem;
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 600;
@@ -195,7 +181,9 @@ a:hover {
 .btn:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+.tab-btn:focus-visible,
+summary:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -216,20 +204,28 @@ textarea:focus-visible {
   color: var(--danger-ink);
 }
 
-.btn-danger:hover {
-  opacity: 0.9;
+.btn-sm {
+  min-height: 34px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8125rem;
 }
 
-.btn-sm {
-  padding: 0.35rem 0.7rem;
-  font-size: 0.8125rem;
+.control-select {
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  min-height: 34px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.84rem;
+  font-weight: 600;
 }
 
 /* Main Workspace Layout */
 .workspace {
   display: grid;
-  grid-template-columns: 360px 1fr;
-  min-height: calc(100vh - 70px);
+  grid-template-columns: 340px 1fr;
+  min-height: calc(100vh - 64px);
 }
 
 @media (max-width: 1024px) {
@@ -238,15 +234,15 @@ textarea:focus-visible {
   }
 }
 
-/* Sidebar — Clean list divided by hairlines, zero nested cards */
+/* Sidebar — Clean scannable list */
 .sidebar {
-  background: var(--surface);
+  background: var(--bg);
   border-right: 1px solid var(--border);
-  padding: 1.15rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  max-height: calc(100vh - 70px);
+  gap: 0.75rem;
+  max-height: calc(100vh - 64px);
   overflow-y: auto;
 }
 
@@ -254,19 +250,30 @@ textarea:focus-visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 0.65rem;
+  padding-bottom: 0.6rem;
   border-bottom: 1px solid var(--border);
 }
 
+.sidebar-header h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.listings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
 .listing-item {
-  padding: 0.9rem;
+  padding: 0.85rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: var(--surface);
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.4rem;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
@@ -288,21 +295,41 @@ textarea:focus-visible {
 
 .listing-title {
   font-weight: 650;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   line-height: 1.3;
   color: var(--ink);
 }
 
+.listing-price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.listing-price {
+  font-weight: 750;
+  color: var(--ink);
+  font-size: 0.96rem;
+}
+
+.listing-monthly {
+  font-weight: 650;
+  color: var(--accent);
+  font-size: 0.82rem;
+}
+
 .score-badge {
-  min-width: 48px;
-  height: 28px;
+  min-width: 44px;
+  height: 26px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 750;
-  font-size: 0.85rem;
-  padding: 0 0.5rem;
+  font-size: 0.82rem;
+  padding: 0 0.45rem;
+  flex-shrink: 0;
 }
 
 .score-high {
@@ -327,15 +354,15 @@ textarea:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--ink-muted);
 }
 
 .tag {
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
   color: var(--ink);
-  padding: 0.12rem 0.5rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 4px;
   font-size: 0.78rem;
   font-weight: 500;
@@ -355,21 +382,19 @@ textarea:focus-visible {
   font-weight: 600;
 }
 
-/* Detail Panel — Architectural Sheet Layout (Flat Hierarchy, zero nested cards) */
+/* Detail Panel — Structured Decision Sheet with Thematic Tabs */
 .main-panel {
   background: var(--surface);
-  padding: 1.75rem 2.25rem;
+  padding: 1.5rem 2.25rem;
   overflow-y: auto;
-  max-height: calc(100vh - 70px);
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  max-height: calc(100vh - 64px);
 }
 
 .dossier-sheet {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 1.25rem;
+  max-width: 1280px;
 }
 
 .hero-header {
@@ -377,31 +402,35 @@ textarea:focus-visible {
   justify-content: space-between;
   align-items: flex-start;
   flex-wrap: wrap;
-  gap: 1.25rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--border);
+  gap: 1rem;
 }
 
 .hero-address {
   color: var(--ink-muted);
-  font-size: 0.95rem;
-  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
 }
 
-/* Key Metrics Strip — Flat architectural Ledger (not nested cards) */
+/* 4-KPI Decision Strip (Flat Architectural Ledger) */
 .metrics-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  padding: 1rem 0;
-  gap: 1rem;
+  padding: 0.9rem 0;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .metrics-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .metric-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.15rem;
   padding-right: 1rem;
   border-right: 1px solid var(--border);
 }
@@ -411,9 +440,11 @@ textarea:focus-visible {
 }
 
 .metric-label {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--ink-muted);
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .metric-val {
@@ -422,17 +453,74 @@ textarea:focus-visible {
   color: var(--ink);
 }
 
-/* Alerts & Dealbreakers Strip (No thick left borders) */
+.metric-sub {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+/* Thematic Navigation Tabs (Operate Mode) */
+.dossier-tabs {
+  display: flex;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+  font-weight: 650;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tab-btn:hover {
+  color: var(--ink);
+}
+
+.tab-btn[aria-selected="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-count {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 99px;
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.tab-panel {
+  display: none;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding-top: 0.5rem;
+}
+
+.tab-panel.active {
+  display: flex;
+}
+
+/* Alerts & Dealbreakers Strip */
 .alerts-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .notice-bar {
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 0.95rem;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
@@ -457,32 +545,30 @@ textarea:focus-visible {
   color: var(--ok-ink);
 }
 
-/* Two-Column Editorial Sections separated by hairlines */
+/* Two-Column Thematic Grids inside Tabs */
 .editorial-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
   gap: 2.25rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
 }
 
 .editorial-section {
   display: flex;
   flex-direction: column;
-  gap: 0.95rem;
+  gap: 0.9rem;
 }
 
 .section-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.45rem;
   border-bottom: 2px solid var(--ink);
   gap: 0.5rem;
 }
 
 .commute-row {
-  padding: 0.85rem 0;
+  padding: 0.8rem 0;
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -496,7 +582,7 @@ textarea:focus-visible {
 /* Map */
 #propertyMap {
   width: 100%;
-  height: 360px;
+  height: 380px;
   border-radius: 6px;
   border: 1px solid var(--border);
   z-index: 1;
@@ -519,13 +605,13 @@ textarea:focus-visible {
 .axis-row {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.25rem;
 }
 
 .axis-head {
   display: flex;
   justify-content: space-between;
-  font-size: 0.875rem;
+  font-size: 0.86rem;
 }
 
 .progress-track {
@@ -565,11 +651,11 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 5px;
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 .dpe-A { background: #14532d; color: #ffffff; }
 .dpe-B { background: #166534; color: #ffffff; }
@@ -584,10 +670,10 @@ dialog {
   margin: auto;
   background: var(--surface);
   color: var(--ink);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border-strong);
   border-radius: 10px;
   padding: 1.5rem;
-  width: min(760px, 94vw);
+  width: min(720px, 94vw);
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -603,6 +689,31 @@ dialog::backdrop {
   margin-bottom: 1rem;
   padding-bottom: 0.65rem;
   border-bottom: 1px solid var(--border);
+}
+
+.dialog-header h2 {
+  font-size: 1.25rem;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 1.15rem;
+}
+
+.progressive-details {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 0.7rem 0;
+  margin-bottom: 0.5rem;
+}
+
+.progressive-details summary {
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 0.88rem;
+  color: var(--accent);
 }
 
 .form-grid {
@@ -630,7 +741,7 @@ dialog::backdrop {
   background: var(--bg);
   border: 1px solid var(--border-strong);
   color: var(--ink);
-  padding: 0.55rem 0.7rem;
+  padding: 0.5rem 0.7rem;
   border-radius: 6px;
   font-size: 0.9rem;
 }
@@ -644,9 +755,10 @@ dialog::backdrop {
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
-  padding: 0.55rem 0;
+  padding: 0.6rem 0;
   border-bottom: 1px solid var(--border);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 .checklist-row input[type="checkbox"] {
