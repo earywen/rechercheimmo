@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Capture Recherche Immo IA</title>
+  <style>
+    body {
+      width: 350px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 14px;
+      margin: 0;
+    }
+    h3 { margin: 0 0 8px 0; font-size: 15px; color: #38bdf8; }
+    label { display: block; font-size: 11px; color: #94a3b8; margin-top: 8px; margin-bottom: 3px; font-weight: 600; }
+    input, select, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    button {
+      margin-top: 12px;
+      width: 100%;
+      background: #0284c7;
+      border: 1px solid #38bdf8;
+      color: #fff;
+      font-weight: 700;
+      padding: 9px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    button:hover { background: #0369a1; }
+    #statusMsg { margin-top: 8px; font-size: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h3>🏠 Capture vers Recherche Immo IA</h3>
+  <label>Serveur Recherche Immo (Beelink)</label>
+  <input type="text" id="serverUrl" value="http://localhost:8765" />
+
+  <label>Adresse exacte du bien (ou Rue + Ville) *</label>
+  <input type="text" id="addressInput" placeholder="Ex: 15 rue Jeanne d'Arc, 76000 Rouen" />
+
+  <div class="row">
+    <div>
+      <label>Prix (€)</label>
+      <input type="number" id="priceInput" />
+    </div>
+    <div>
+      <label>Type</label>
+      <select id="typeInput">
+        <option value="Maison">Maison</option>
+        <option value="Appartement">Appartement</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Surface (m²)</label>
+      <input type="number" id="surfaceInput" />
+    </div>
+    <div>
+      <label>Terrain (m²)</label>
+      <input type="number" id="landInput" />
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Chambres</label>
+      <input type="number" id="bedroomsInput" />
+    </div>
+    <div>
+      <label>DPE</label>
+      <input type="text" id="dpeInput" maxlength="1" placeholder="A-G" />
+    </div>
+  </div>
+
+  <label>Titre de l'annonce</label>
+  <input type="text" id="titleInput" />
+
+  <button id="btnSend">🚀 Envoyer &amp; Analyser en 1 Clic</button>
+  <div id="statusMsg"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

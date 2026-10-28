@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Recherche Immo IA — Rouen Métropole (Capture 1-Clic)",
+  "version": "1.0.0",
+  "description": "Capture en 1 clic une annonce immobilière (LeBonCoin, SeLoger, Bien'ici, PAP, Agences) vers votre Dashboard Recherche Immo IA.",
+  "permissions": ["tabs", "scripting", "storage"],
+  "host_permissions": [
+    "https://*.leboncoin.fr/*",
+    "https://*.seloger.com/*",
+    "https://*.bienici.com/*",
+    "https://*.pap.fr/*",
+    "https://*.logic-immo.com/*",
+    "http://localhost:8765/*",
+    "http://127.0.0.1:8765/*",
+    "http://192.168.1.75:8765/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
