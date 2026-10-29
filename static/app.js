@@ -1315,6 +1315,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDialogs();
   updateThemeButtonLabel();
   loadInitialData();
+  initBookmarkletLink();
 
   const themeBtn = document.getElementById("btnThemeToggle");
   if (themeBtn) {
@@ -1648,3 +1649,10 @@ function initBookmarkletLink() {
     link.href = code.replace(/\n\s*/g, " ");
   }
 }
+
+window.initBookmarkletLink = initBookmarkletLink;
+window.openBookmarkletModal = function() {
+  initBookmarkletLink();
+  const dlg = document.getElementById("bookmarkletDialog");
+  if (dlg) dlg.showModal();
+};

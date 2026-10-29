@@ -28,7 +28,7 @@
       <button class="btn" id="btnOpenCompareModal">Comparateur</button>
       <button class="btn" id="btnOpenDetectiveModal">Détective DPE</button>
       <button class="btn" id="btnOpenSettingsModal">Critères</button>
-      <button class="btn" id="btnOpenBookmarkletModal" title="Capturer depuis un autre PC">⭐ Bouton Magique</button>
+      <button class="btn" id="btnOpenBookmarkletModal" onclick="openBookmarkletModal()" title="Capturer depuis un autre PC">⭐ Bouton Magique</button>
       <button class="btn" id="btnThemeToggle" aria-label="Basculer entre le thème clair et le thème sombre">Mode sombre</button>
     </div>
   </header>
@@ -303,20 +303,45 @@
         <div style="font-size:0.85rem; color:var(--ink-muted); margin-bottom:0.6rem;">
           👉 <strong>Glissez ce bouton</strong> vers votre barre de favoris :
         </div>
-        <a id="bookmarkletLink" class="btn btn-primary" href="#" style="display:inline-block; padding:0.65rem 1.3rem; font-weight:700; cursor:grab;" onclick="event.preventDefault(); alert('Glissez ce bouton vers votre barre de favoris (Ctrl+Maj+B) !');">
-          📥 Capturer vers Recherche Immo
-        </a>
+        <div style="display:flex; justify-content:center; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+          <a id="bookmarkletLink" class="btn btn-primary" href="#" style="display:inline-block; padding:0.65rem 1.3rem; font-weight:700; cursor:grab;" onclick="event.preventDefault(); alert('Glissez ce bouton vers votre barre de favoris (Ctrl+Maj+B) !');">
+            📥 Capturer vers Recherche Immo
+          </a>
+          <button type="button" class="btn btn-sm" id="btnCopyBmCode" onclick="copyBookmarkletCode(this)">
+            📋 Copier le code JS
+          </button>
+        </div>
       </div>
 
       <ol style="padding-left:1.3rem; font-size:0.86rem; color:var(--ink-muted); display:flex; flex-direction:column; gap:0.45rem;">
         <li>Affichez la barre des favoris de votre navigateur (raccourci <code>Ctrl+Maj+B</code> ou <code>Cmd+Maj+B</code>).</li>
-        <li>Glissez le bouton bleu ci-dessus directement dans votre barre de favoris.</li>
+        <li>Glissez le bouton bleu ci-dessus directement dans votre barre de favoris (ou copiez le code pour créer un favori manuel).</li>
         <li>Quand vous visitez une annonce sur LeBonCoin, SeLoger ou Bien'ici, <strong>cliquez simplement sur ce favori</strong> : l'annonce et toutes ses photos HD sont capturées instantanément vers votre serveur !</li>
       </ol>
     </div>
   </dialog>
 
+  <script>
+    function openBookmarkletModal() {
+      const dlg = document.getElementById('bookmarkletDialog');
+      if (dlg) {
+        if (typeof initBookmarkletLink === 'function') initBookmarkletLink();
+        dlg.showModal();
+      }
+    }
+    function copyBookmarkletCode(btn) {
+      const link = document.getElementById('bookmarkletLink');
+      if (link && link.href) {
+        navigator.clipboard.writeText(link.href).then(() => {
+          const prev = btn.textContent;
+          btn.textContent = '✅ Code copié !';
+          setTimeout(() => { btn.textContent = prev; }, 2000);
+        });
+      }
+    }
+  </script>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/static/app.js?v=2.8"></script>
+  <script src="/static/app.js?v=3.2"></script>
 </body>
 </html>
