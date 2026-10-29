@@ -423,14 +423,15 @@ function renderDetail(item) {
 
   let galleryHtml = "";
   if (photos.length > 0) {
+    const isSmallSet = photos.length <= 3;
     galleryHtml = `
       <div class="hero-strip-container" id="heroStripContainer">
-        ${photos.length > 3 ? `
+        ${photos.length > 4 ? `
           <button type="button" class="hero-strip-nav hero-strip-prev" onclick="scrollHeroStrip(-1)" aria-label="Photos précédentes">‹</button>
         ` : ""}
         <div class="hero-strip-track" id="heroStripTrack">
           ${photos.map((p, idx) => `
-            <div class="hero-strip-item" onclick="openPhotoLightbox(${idx})" title="Agrandir la photo ${idx + 1} en plein écran (HD)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openPhotoLightbox(${idx})" aria-label="Photo ${idx + 1} sur ${photos.length}">
+            <div class="hero-strip-item ${isSmallSet ? 'item-large' : ''}" onclick="openPhotoLightbox(${idx})" title="Agrandir la photo ${idx + 1} en plein écran (HD)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openPhotoLightbox(${idx})" aria-label="Photo ${idx + 1} sur ${photos.length}">
               <img src="${p}" referrerpolicy="no-referrer" alt="Photo ${idx + 1}" onerror="handleGalleryImgError(this, false, ${idx})" loading="lazy" />
               <div class="hero-strip-overlay">
                 <span class="hero-strip-zoom">⤢ HD</span>
@@ -439,8 +440,9 @@ function renderDetail(item) {
             </div>
           `).join("")}
         </div>
-        ${photos.length > 3 ? `
+        ${photos.length > 4 ? `
           <button type="button" class="hero-strip-nav hero-strip-next" onclick="scrollHeroStrip(1)" aria-label="Photos suivantes">›</button>
+          <button type="button" class="hero-strip-badge" onclick="openPhotoLightbox(0)" aria-label="Voir toutes les photos en plein écran">${photos.length} photos ⤢</button>
         ` : ""}
       </div>
     `;
@@ -1586,7 +1588,7 @@ function stepGalleryPhoto(delta) {
 function scrollHeroStrip(direction) {
   const track = document.getElementById("heroStripTrack");
   if (track) {
-    track.scrollBy({ left: direction * 140, behavior: "smooth" });
+    track.scrollBy({ left: direction * 190, behavior: "smooth" });
   }
 }
 

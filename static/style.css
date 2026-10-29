@@ -412,28 +412,36 @@ summary:focus-visible {
 }
 
 .hero-carousel-wrap {
-  flex: 0 0 auto;
+  flex: 0 0 405px;
+  width: 405px;
+  max-width: 405px;
+  min-width: 0;
   display: flex;
   justify-content: center;
 }
 
 .hero-strip-container {
   position: relative;
+  width: 100%;
+  max-width: 405px;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius);
 }
 
 .hero-strip-track {
   display: flex;
   gap: 0.45rem;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   overflow-x: auto;
   scroll-behavior: smooth;
   scrollbar-width: none;
   padding: 4px 8px;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .hero-strip-track::-webkit-scrollbar {
@@ -442,9 +450,9 @@ summary:focus-visible {
 
 .hero-strip-item {
   position: relative;
-  flex: 0 0 112px;
-  width: 112px;
-  height: 88px;
+  flex: 0 0 91px;
+  width: 91px;
+  height: 74px;
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--border);
@@ -452,6 +460,12 @@ summary:focus-visible {
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
+}
+
+.hero-strip-item.item-large {
+  flex: 0 0 112px;
+  width: 112px;
+  height: 88px;
 }
 
 .hero-strip-item:hover {
@@ -499,7 +513,7 @@ summary:focus-visible {
 
 .hero-strip-num {
   color: #ffffff;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
@@ -511,17 +525,18 @@ summary:focus-visible {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.88);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 3;
+  z-index: 4;
   font-size: 1rem;
   line-height: 1;
   backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   transition: background 0.15s ease, transform 0.15s ease;
 }
 
@@ -531,11 +546,33 @@ summary:focus-visible {
 }
 
 .hero-strip-prev {
-  left: -10px;
+  left: 3px;
 }
 
 .hero-strip-next {
-  right: -10px;
+  right: 3px;
+}
+
+.hero-strip-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  background: rgba(15, 23, 42, 0.88);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+  z-index: 3;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s ease;
+}
+
+.hero-strip-badge:hover {
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .hero-carousel {
