@@ -136,21 +136,34 @@ def parse_raw_ad_text(text: str) -> dict[str, Any]:
         elif all_surfs:
             out["surface_m2"] = all_surfs[0]
 
-    # Rooms & Bedrooms
-    m_rooms = re.search(r"(\d{1,2})\s*pi[èe]ces?", text, re.IGNORECASE)
+    # Rooms & Bedrooms (handle single-line and structured block format)
+    m_rooms = re.search(r"(?:Nombre de pièces|pièces?)[^\d\n\r]{0,25}(\d{1,2})\b", text, re.IGNORECASE)
     if m_rooms:
         out["rooms"] = int(m_rooms.group(1))
-    m_bed = re.search(r"(\d{1,2})\s*chambres?", text, re.IGNORECASE)
+    m_bed = re.search(r"(?:Nombre de chambres|chambres?)[^\d\n\r]{0,25}(\d{1,2})\b", text, re.IGNORECASE)
     if m_bed:
         out["bedrooms"] = int(m_bed.group(1))
 
-    # DPE & GES
-    m_dpe = re.search(r"\bDPE\s*[:\-]?\s*([A-G])\b", text, re.IGNORECASE)
-    if m_dpe:
-        out["dpe_letter"] = m_dpe.group(1).upper()
-    m_ges = re.search(r"\bGES\s*[:\-]?\s*([A-G])\b", text, re.IGNORECASE)
-    if m_ges:
-        out["ges_letter"] = m_ges.group(1).upper()
+    # Année de construction
+    m_year = re.search(r"(?:Année de construction|Année|Construite en|Bâtie en)[^\d\n\r]{0,25}(\d{4})\b", text, re.IGNORECASE)
+    if m_year:
+        yr = int(m_year.group(1))
+        if 1800 <= yr <= 2030:
+            out["construction_year"] = yr
+
+    # DPE & GES with guard against vertical scale (A B C D E F G)
+    # Check "Classe énergie D", "DPE : D", "DPE D", or "DPE : D en consommation"
+    m_dpe_expl = re.search(r"(?:Classe\s+[eé]nergie|DPE)[^\w]{0,15}([A-G])\b(?!\s*B\s*C)", text, re.IGNORECASE)
+    if m_dpe_expl:
+        out["dpe_letter"] = m_dpe_expl.group(1).upper()
+
+    m_ges_expl = re.search(r"(?:GES|gaz\s+[aà]\s+effet\s+de\s+serre)[^\w]{0,15}([A-G])\b(?!\s*B\s*C)", text, re.IGNORECASE)
+    if m_ges_expl:
+        out["ges_letter"] = m_ges_expl.group(1).upper()
+    else:
+        m_ges_text = re.search(r"([A-G])\s+en\s+[eé]missions\s+de\s+gaz", text, re.IGNORECASE)
+        if m_ges_text:
+            out["ges_letter"] = m_ges_text.group(1).upper()
 
     # Postal code (76xxx or 27xxx)
     m_cp = re.search(r"\b((?:76|27)\d{3})\b", text)

@@ -201,7 +201,7 @@ def save_uploaded_document(
         "uploaded_at": datetime.now(timezone.utc).isoformat(),
         "extracted_chars": len(extracted_text),
         "extracted_snippet": extracted_text[:1200] if extracted_text else "",
-        "extracted_text_full": extracted_text[:25000] if extracted_text else "",
+        "extracted_text_full": extracted_text[:250000] if extracted_text else "",
         "detected_hints": hints,
     }
 
@@ -266,7 +266,7 @@ def reprocess_listing_documents(listing_id: int) -> dict[str, Any] | None:
         d["detected_hints"] = hints
         d["extracted_chars"] = len(extracted_text)
         d["extracted_snippet"] = extracted_text[:1200] if extracted_text else ""
-        d["extracted_text_full"] = extracted_text[:25000] if extracted_text else ""
+        d["extracted_text_full"] = extracted_text[:250000] if extracted_text else ""
         updated_docs.append(d)
 
     updates: dict[str, Any] = {"documents": updated_docs}
@@ -319,6 +319,66 @@ def get_document_file(listing_id: int, doc_id: str) -> tuple[Path, str] | None:
     return None
 
 
+def smart_extract_diagnostic_sections(text: str) -> str:
+    """Intelligently summarize and extract all key pages from a multi-page DDT/Diagnostic dossier."""
+    if not text:
+        return ""
+    pages = text.split("\x0c")
+    if len(pages) <= 3:
+        return text[:8000]
+
+    chunks = []
+    for idx, p in enumerate(pages):
+        p_clean = p.strip()
+        if not p_clean:
+            continue
+        lower = p_clean.lower()
+        is_key = False
+        # DPE key pages (costs, equipment, envelope, works recommendations)
+        if "diagnostic de performance" in lower and (
+            "estimation des coûts" in lower
+            or "montants et consommations" in lower
+            or "vue d’ensemble" in lower
+            or "recommandations" in lower
+            or "surface de référence" in lower
+        ):
+            is_key = True
+        # Électricité (anomalies, conclusion, points non vérifiés)
+        elif "installation intérieure d’electricité" in lower and (
+            "anomalies" in lower
+            or "conclusion" in lower
+            or "avertissement particulier" in lower
+            or "points de contrôle" in lower
+        ):
+            is_key = True
+        # Amiante (conclusions, réserves d'accès)
+        elif "repérage amiante" in lower and (
+            "conclusions" in lower
+            or "n’ont pu être visités" in lower
+            or "matériaux ou produits contenant" in lower
+        ):
+            is_key = True
+        # Plomb (CREP)
+        elif "plomb" in lower and ("conclusion" in lower or "crep" in lower or "revêtements" in lower):
+            is_key = True
+        # Gaz (anomalies DGI, A1, A2)
+        elif "installation intérieure de gaz" in lower and ("anomalie" in lower or "conclusion" in lower):
+            is_key = True
+        # Assainissement
+        elif "assainissement" in lower and ("conformité" in lower or "contrôle" in lower):
+            is_key = True
+        # ERP / Risques
+        elif "etat des risques" in lower and ("radon" in lower or "argiles" in lower or "inondation" in lower):
+            is_key = True
+
+        if is_key:
+            chunks.append(f"--- [EXTRAIT PAGE {idx+1} DU DIAGNOSTIC / DDT] ---\n{p_clean[:1800]}")
+
+    if chunks:
+        return "\n\n".join(chunks)[:18000]
+    return text[:10000]
+
+
 def format_documents_for_audit_prompt(documents: list[dict[str, Any]]) -> str:
     if not documents:
         return ""
@@ -330,9 +390,12 @@ def format_documents_for_audit_prompt(documents: list[dict[str, Any]]) -> str:
             lines.append(f"Chiffres détectés : {hints}")
         text = d.get("extracted_text_full") or d.get("extracted_snippet") or ""
         if text:
-            # Crop to 6000 chars per doc to maintain reasonable prompt length
-            cropped = text[:6000].replace("\r\n", "\n")
-            lines.append("EXTRAIT DU CONTENU DU DOCUMENT :")
+            # Use smart diagnostic extraction if multi-page DDT, else full text sample
+            if len(text) > 8000 or "\x0c" in text:
+                cropped = smart_extract_diagnostic_sections(text).replace("\r\n", "\n")
+            else:
+                cropped = text[:7000].replace("\r\n", "\n")
+            lines.append("EXTRAIT SYNTHÉTIQUE DU CONTENU DU DOCUMENT :")
             lines.append(cropped)
         else:
             lines.append("(Aucun texte extrait - fichier binaire ou image)")

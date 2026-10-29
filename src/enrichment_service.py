@@ -144,10 +144,10 @@ async def detective_dpe_lookup(
     return []
 
 
-async def fetch_cadastre_and_plu(lat: float, lon: float) -> dict[str, Any]:
+async def fetch_cadastre_and_plu(lat: float, lon: float, expected_land_m2: float = 0) -> dict[str, Any]:
     """Fetch exact cadastral parcel & urbanism zone from IGN APICarto."""
     # APICarto /cadastre/parcelle requires a polygon/bbox to intersect, not a single point
-    delta = 0.00018  # ~18 meters bounding box around address
+    delta = 0.00045 if expected_land_m2 > 0 else 0.00025  # ~25-45 meters bounding box around address
     bbox_poly = {
         "type": "Polygon",
         "coordinates": [[
@@ -178,6 +178,7 @@ async def fetch_cadastre_and_plu(lat: float, lon: float) -> dict[str, Any]:
                 if feats:
                     best_f = None
                     min_dist = float("inf")
+                    scored_candidates = []
                     for f in feats:
                         geom = f.get("geometry") or {}
                         pts = []
@@ -189,10 +190,27 @@ async def fetch_cadastre_and_plu(lat: float, lon: float) -> dict[str, Any]:
                             c_lon = sum(p[0] for p in pts) / len(pts)
                             c_lat = sum(p[1] for p in pts) / len(pts)
                             d = haversine_m(lat, lon, c_lat, c_lon)
+                            props = f.get("properties", {})
+                            contenance = float(props.get("contenance") or 0)
+                            scored_candidates.append((d, contenance, f))
                             if d < min_dist:
                                 min_dist = d
                                 best_f = f
-                    selected_f = best_f or feats[0]
+                    
+                    # If expected land surface is known, prioritize parcel matching that surface within 60m
+                    if expected_land_m2 > 20 and scored_candidates:
+                        matches = [
+                            c for c in scored_candidates
+                            if c[0] <= 65 and abs(c[1] - expected_land_m2) <= max(15.0, expected_land_m2 * 0.10)
+                        ]
+                        if matches:
+                            matches.sort(key=lambda x: (abs(x[1] - expected_land_m2), x[0]))
+                            selected_f = matches[0][2]
+                        else:
+                            selected_f = best_f or feats[0]
+                    else:
+                        selected_f = best_f or feats[0]
+
                     props = selected_f.get("properties", {})
                     out.update(
                         {
@@ -509,9 +527,16 @@ async def fetch_osm_amenities_and_noise(lat: float, lon: float) -> dict[str, Any
         "noise_sources": [],
         "walkability_label": "Modérée",
     }
-    try:
-        async with httpx.AsyncClient(timeout=9.0) as client:
-            resp = await client.post("https://overpass-api.de/api/interpreter", data={"data": query})
+    headers = {"User-Agent": "RechercheImmoRouen/1.0 (contact@recherche-immo.local; bot)"}
+    endpoints = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.private.coffee/api/interpreter",
+        "https://lz4.overpass-api.de/api/interpreter",
+    ]
+    for ep in endpoints:
+        try:
+            async with httpx.AsyncClient(timeout=8.0, headers=headers) as client:
+                resp = await client.post(ep, data={"data": query})
             if resp.status_code == 200:
                 elements = resp.json().get("elements", [])
                 for el in elements:
@@ -555,6 +580,40 @@ async def fetch_osm_amenities_and_noise(lat: float, lon: float) -> dict[str, Any
                     out["walkability_label"] = "Bonne (Commerces de proximité accessibles)"
                 else:
                     out["walkability_label"] = "Secteur résidentiel calme (Voiture/Vélo utile pour les courses)"
+                return out
+        except Exception:
+            continue
+
+    # Robust fallback via OpenStreetMap Nominatim POI search if Overpass servers fail/timeout
+    try:
+        dlat, dlon = 0.012, 0.018  # ~1.2 km bounding box
+        vbox = f"{lon-dlon},{lat+dlat},{lon+dlon},{lat-dlat}"
+        async with httpx.AsyncClient(timeout=6.0, headers=headers) as client:
+            for q, cat in [("boulangerie", "bakeries"), ("supermarché", "supermarkets"), ("pharmacie", "health"), ("médecin", "health")]:
+                try:
+                    r = await client.get(
+                        "https://nominatim.openstreetmap.org/search",
+                        params={"q": q, "format": "json", "viewbox": vbox, "bounded": 1},
+                    )
+                    if r.status_code == 200:
+                        for item in r.json():
+                            dist = round(haversine_m(lat, lon, float(item["lat"]), float(item["lon"])))
+                            name = item["display_name"].split(",")[0].strip()
+                            ptype = "pharmacy" if q == "pharmacie" else ("doctors" if q == "médecin" else q)
+                            out[cat].append({"name": name, "distance_m": dist, "type": ptype})
+                except Exception:
+                    pass
+
+        out["supermarkets"].sort(key=lambda x: x["distance_m"])
+        out["bakeries"].sort(key=lambda x: x["distance_m"])
+        out["health"].sort(key=lambda x: x["distance_m"])
+        poi_total = len(out["supermarkets"]) + len(out["bakeries"]) + len(out["health"])
+        if poi_total >= 8:
+            out["walkability_label"] = "Excellente (Tout à pied < 10 min)"
+        elif poi_total >= 3:
+            out["walkability_label"] = "Bonne (Commerces de proximité accessibles)"
+        else:
+            out["walkability_label"] = "Secteur résidentiel calme (Voiture/Vélo utile pour les courses)"
     except Exception:
         pass
     return out
@@ -586,7 +645,8 @@ async def run_full_enrichment(listing_data: dict[str, Any], settings: dict[str, 
     if lat == 0 or lon == 0:
         return {"error": "Impossible de géolocaliser l'adresse"}
 
-    cadastre_task = fetch_cadastre_and_plu(lat, lon)
+    expected_land = float(listing_data.get("land_m2") or 0)
+    cadastre_task = fetch_cadastre_and_plu(lat, lon, expected_land_m2=expected_land)
     georisques_task = fetch_georisques(lat, lon, citycode)
     dpe_task = fetch_ademe_dpe_for_address(address_input or geo_info.get("label", ""), postcode, surface_m2, dpe_letter)
     schools_task = fetch_schools_and_ips(lat, lon, city)

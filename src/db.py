@@ -201,6 +201,9 @@ def save_listing(data: dict[str, Any], listing_id: int | None = None) -> dict[st
     for obj_key, col_key in json_map.items():
         if obj_key in data and col_key not in data:
             data[col_key] = json.dumps(data[obj_key], ensure_ascii=False)
+    for col in ("enrichment_json", "finance_json", "scoring_json", "ai_audit_json", "documents_json"):
+        if col in data and isinstance(data[col], (dict, list)):
+            data[col] = json.dumps(data[col], ensure_ascii=False)
 
     with get_conn() as conn:
         if listing_id is None:

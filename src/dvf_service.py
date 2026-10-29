@@ -222,9 +222,14 @@ def analyze_dvf_around(
         try:
             conn = sqlite3.connect(str(DVF_DB_PATH))
             c_rows = conn.execute(
-                "SELECT prix_m2 FROM mutations WHERE UPPER(nom_commune) = ?",
-                (commune_name.upper(),),
+                "SELECT prix_m2 FROM mutations WHERE UPPER(nom_commune) = ? AND type_local = ? AND prix_m2 BETWEEN 500 AND 12000",
+                (commune_name.upper(), target_type),
             ).fetchall()
+            if not c_rows:
+                c_rows = conn.execute(
+                    "SELECT prix_m2 FROM mutations WHERE UPPER(nom_commune) = ? AND prix_m2 BETWEEN 500 AND 12000",
+                    (commune_name.upper(),),
+                ).fetchall()
             conn.close()
             c_prices = [r[0] for r in c_rows if r[0] > 0]
             if c_prices:

@@ -298,14 +298,21 @@ def compute_scoring_and_dealbreakers(
         warnings.append(f"Présence de quartier prioritaire (QPV) sur la commune : {socio.get('qpv_nom')} (vérifier l'éloignement exact)")
 
     # Educational quality & IPS
-    avg_ips = education.get("summary", {}).get("average_ips") or schools.get("average_ips")
-    if avg_ips:
+    edu_summary = education.get("summary", {})
+    sector_ips = edu_summary.get("sector_college_ips")
+    sector_nom = edu_summary.get("sector_college_nom") or "de secteur"
+    avg_ips = edu_summary.get("average_ips") or schools.get("average_ips")
+
+    if sector_ips and sector_ips < 88:
+        s_neigh -= 8
+        warnings.append(f"Collège public de secteur ({sector_nom}) : IPS fragile ({sector_ips}) — alternative privée à budgétiser")
+    elif avg_ips:
         if avg_ips >= 115:
             s_neigh += 10
-            strengths.append(f"Cadre éducatif de premier ordre (IPS moyen : {avg_ips} — très favorable à la réussite des enfants)")
+            strengths.append(f"Cadre éducatif très stimulant (IPS moyen : {avg_ips})")
         elif avg_ips >= 103:
             s_neigh += 5
-            strengths.append(f"Niveau des écoles favorable (IPS moyen : {avg_ips}, supérieur à la moyenne nationale)")
+            strengths.append(f"Niveau des écoles favorable (IPS moyen : {avg_ips})")
         elif avg_ips < 90:
             s_neigh -= 10
             warnings.append(f"Indice de Position Sociale (IPS) des écoles inférieur à la moyenne ({avg_ips})")

@@ -350,10 +350,16 @@ async def fetch_complete_education_trajectory(lat: float, lon: float, city: str 
                         "brevet_mentions_pct": None,
                     }
                     raw_schools.append(record)
-                    if "Collège" in t_type:
-                        uai_colleges.append(f"'{uai}'")
-                    elif "Ecole" in t_type:
-                        uai_schools.append(f"'{uai}'")
+
+            # Sort by distance immediately so nearest establishments come first
+            raw_schools.sort(key=lambda x: x["distance_m"])
+            for s in raw_schools:
+                u = s.get("uai", "")
+                t = s.get("type", "")
+                if "Collège" in t and u:
+                    uai_colleges.append(f"'{u}'")
+                elif "Ecole" in t and u:
+                    uai_schools.append(f"'{u}'")
 
             # Enrich with IPS for Schools and Colleges in parallel
             ips_tasks = []
@@ -435,12 +441,29 @@ async def fetch_complete_education_trajectory(lat: float, lon: float, city: str 
                 },
             ]
 
+            # Identify nearest public and private colleges
+            nearest_pub_college = next((c for c in out["colleges"] if c.get("statut") == "Public"), None)
+            nearest_priv_college = next((c for c in out["colleges"] if c.get("statut") == "Privé"), None)
+
+            if nearest_pub_college:
+                out["summary"]["sector_college_nom"] = nearest_pub_college["nom"]
+                out["summary"]["sector_college_dist_m"] = nearest_pub_college["distance_m"]
+                out["summary"]["sector_college_ips"] = nearest_pub_college.get("ips")
+            if nearest_priv_college:
+                out["summary"]["nearest_private_college_nom"] = nearest_priv_college["nom"]
+                out["summary"]["nearest_private_college_dist_m"] = nearest_priv_college["distance_m"]
+                out["summary"]["nearest_private_college_ips"] = nearest_priv_college.get("ips")
+
             # Overall IPS and Education Score
             all_ips = [s["ips"] for s in raw_schools if s["ips"] is not None]
+            sector_ips = nearest_pub_college.get("ips") if nearest_pub_college else None
+
             if all_ips:
                 avg = round(sum(all_ips) / len(all_ips), 1)
                 out["summary"]["average_ips"] = avg
-                if avg >= 115:
+                if sector_ips and sector_ips < 88:
+                    out["summary"]["ips_verdict"] = f"Collège public de secteur fragile ({nearest_pub_college['nom']} - IPS {sector_ips}) — Collège privé conseillé"
+                elif avg >= 115:
                     out["summary"]["ips_verdict"] = "Cadre éducatif très favorisé & stimulant (CSP++)"
                 elif avg >= 102:
                     out["summary"]["ips_verdict"] = "Cadre éducatif équilibré et favorable (au-dessus de la moyenne nationale)"
