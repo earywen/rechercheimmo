@@ -11,7 +11,7 @@
   </script>
   <title>Recherche Immo — Rouen Métropole</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/style.css?v=2.8" />
+  <link rel="stylesheet" href="/static/style.css?v=3.5" />
 </head>
 <body>
   <header class="topbar">
@@ -322,18 +322,18 @@
   </dialog>
 
   <!-- MODAL 6: Visualiseur Photos HD Plein Écran (Lightbox) -->
-  <dialog id="photoLightboxDialog" class="lightbox-dialog" closedby="any" aria-label="Visualiseur photos HD plein écran">
-    <div class="lightbox-topbar">
-      <span id="lightboxBadge" class="lightbox-badge">Photo 1 / 1</span>
+  <dialog id="photoLightboxDialog" class="lightbox-dialog" closedby="any" aria-label="Visualiseur photos HD plein écran" style="background:#090d16; color:#ffffff; border:1px solid rgba(255,255,255,0.15); border-radius:12px; padding:0; width:min(1140px, 96vw); max-height:94vh; overflow:hidden;">
+    <div class="lightbox-topbar" style="display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1.25rem; background:rgba(15,23,42,0.95); border-bottom:1px solid rgba(255,255,255,0.1);">
+      <span id="lightboxBadge" class="lightbox-badge" style="font-size:0.85rem; font-weight:650; color:#e2e8f0;">Photo 1 / 1</span>
       <button type="button" class="btn btn-sm lightbox-close-btn" onclick="closePhotoLightbox()" aria-label="Fermer la vue plein écran">✕ Fermer (Échap)</button>
     </div>
-    <div class="lightbox-viewport" onclick="if(event.target===this)closePhotoLightbox()">
+    <div class="lightbox-viewport" style="position:relative; width:100%; height:min(65vh, 600px); display:flex; align-items:center; justify-content:center; background:#05080f; padding:1rem; overflow:hidden;" onclick="if(event.target===this)closePhotoLightbox()">
       <button type="button" class="lightbox-nav-btn lightbox-nav-prev" onclick="stepLightboxPhoto(-1)" aria-label="Photo précédente">‹</button>
       <div id="lightboxImgContainer" style="display:flex; align-items:center; justify-content:center; max-width:100%; max-height:100%;"></div>
       <button type="button" class="lightbox-nav-btn lightbox-nav-next" onclick="stepLightboxPhoto(1)" aria-label="Photo suivante">›</button>
     </div>
-    <div class="lightbox-footer">
-      <div class="lightbox-thumbs" id="lightboxThumbs" role="tablist" aria-label="Miniatures photos"></div>
+    <div class="lightbox-footer" style="padding:0.6rem 1rem; background:rgba(15,23,42,0.95); border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:center;">
+      <div class="lightbox-thumbs" id="lightboxThumbs" role="tablist" aria-label="Miniatures photos" style="display:flex; gap:0.5rem; overflow-x:auto; max-width:100%; padding:0.2rem 0;"></div>
     </div>
   </dialog>
 
@@ -358,6 +358,6 @@
   </script>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/static/app.js?v=3.3"></script>
+  <script src="/static/app.js?v=3.5"></script>
 </body>
 </html>

@@ -295,10 +295,22 @@ async def seed_demo_listing_if_empty() -> None:
         pass
 
 
+@app.middleware("http")
+async def add_cache_control_header(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    return response
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index_page() -> HTMLResponse:
     index_file = TEMPLATES_DIR / "index.html"
-    return HTMLResponse(index_file.read_text(encoding="utf-8"))
+    resp = HTMLResponse(index_file.read_text(encoding="utf-8"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 @app.get("/api/settings")

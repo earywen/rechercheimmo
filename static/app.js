@@ -424,11 +424,11 @@ function renderDetail(item) {
   let galleryHtml = "";
   if (photos.length > 0) {
     galleryHtml = `
-      <div class="listing-gallery" id="listingGallery">
-        <div class="gallery-viewport">
-          <div class="gallery-blur-bg" id="galleryBlurBg" style="background-image: url('${photos[0]}');"></div>
-          <div class="gallery-frame" onclick="openPhotoLightbox(window.CURRENT_GALLERY_INDEX || 0)" title="Cliquer pour afficher la photo en plein écran">
-            <img id="galleryMainImg" class="gallery-main-img" src="${photos[0]}" referrerpolicy="no-referrer" alt="Photo de l'annonce" onerror="handleGalleryImgError(this, true, 0)" loading="lazy" />
+      <div class="listing-gallery" id="listingGallery" style="margin-bottom:1.25rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;">
+        <div class="gallery-viewport" style="position:relative; width:100%; height:320px; background:#090d16; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+          <div class="gallery-blur-bg" id="galleryBlurBg" style="background-image: url('${photos[0]}'); position:absolute; inset:-20px; background-size:cover; background-position:center; filter:blur(28px) brightness(0.4); opacity:0.55; transform:scale(1.15); pointer-events:none;"></div>
+          <div class="gallery-frame" onclick="openPhotoLightbox(window.CURRENT_GALLERY_INDEX || 0)" title="Cliquer pour afficher la photo en plein écran" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; z-index:1; cursor:zoom-in;">
+            <img id="galleryMainImg" class="gallery-main-img" src="${photos[0]}" referrerpolicy="no-referrer" alt="Photo de l'annonce" onerror="handleGalleryImgError(this, true, 0)" loading="lazy" style="max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; border-radius:4px;" />
           </div>
           <button type="button" class="gallery-fullscreen-btn" onclick="openPhotoLightbox(window.CURRENT_GALLERY_INDEX || 0)" aria-label="Agrandir en plein écran">
             ⤢ Plein écran
@@ -440,10 +440,10 @@ function renderDetail(item) {
           <div class="gallery-badge" id="galleryBadge">1 / ${photos.length} photos</div>
         </div>
         ${photos.length > 1 ? `
-          <div class="gallery-thumbs" id="galleryThumbs" role="tablist" aria-label="Miniatures des photos">
+          <div class="gallery-thumbs" id="galleryThumbs" role="tablist" aria-label="Miniatures des photos" style="display:flex; flex-direction:row; gap:0.5rem; padding:0.6rem 0.75rem; overflow-x:auto; background:var(--surface); border-top:1px solid var(--border); max-height:64px;">
             ${photos.map((p, idx) => `
-              <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" id="thumbItem_${idx}" role="button" tabindex="0" onclick="selectGalleryPhoto(${idx})" onkeydown="if(event.key==='Enter')selectGalleryPhoto(${idx})" aria-label="Afficher la photo ${idx + 1}">
-                <img src="${p}" referrerpolicy="no-referrer" alt="Miniature ${idx + 1}" onerror="handleGalleryImgError(this, false, ${idx})" loading="lazy" />
+              <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" id="thumbItem_${idx}" role="button" tabindex="0" onclick="selectGalleryPhoto(${idx})" onkeydown="if(event.key==='Enter')selectGalleryPhoto(${idx})" aria-label="Afficher la photo ${idx + 1}" style="flex:0 0 68px; width:68px; height:48px; min-width:68px; max-width:68px; border-radius:5px; overflow:hidden; cursor:pointer; flex-shrink:0;">
+                <img src="${p}" referrerpolicy="no-referrer" alt="Miniature ${idx + 1}" onerror="handleGalleryImgError(this, false, ${idx})" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block;" />
               </div>
             `).join("")}
           </div>
