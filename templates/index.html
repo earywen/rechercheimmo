@@ -257,6 +257,29 @@
           <input type="number" id="s_madame_max" />
         </div>
       </div>
+
+      <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border);">
+        <h3 style="font-size:0.95rem; font-weight:600; color:var(--ink); margin-bottom:0.35rem;">Votre Logement Actuel (Location)</h3>
+        <p style="font-size:0.8rem; color:var(--ink-muted); margin-bottom:0.75rem;">Utilisé pour calculer en direct votre saut de charge mensuel et le capital constitué face à un achat.</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="s_current_rent">Loyer charges comprises (€/mois)</label>
+            <input type="number" step="1" id="s_current_rent" />
+          </div>
+          <div class="form-group">
+            <label for="s_current_energy">Électricité &amp; gaz actuels (€/mois)</label>
+            <input type="number" step="0.5" id="s_current_energy" />
+          </div>
+          <div class="form-group">
+            <label for="s_current_insurance">Assurance habitation locataire (€/mois)</label>
+            <input type="number" step="0.5" id="s_current_insurance" />
+          </div>
+          <div class="form-group">
+            <label for="s_current_internet">Box Internet (€/mois)</label>
+            <input type="number" step="0.5" id="s_current_internet" />
+          </div>
+        </div>
+      </div>
       <div class="dialog-actions">
         <button type="button" class="btn" data-close-dialog="settingsDialog">Annuler</button>
         <button type="submit" class="btn btn-primary">Enregistrer</button>

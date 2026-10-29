@@ -47,6 +47,10 @@ def compute_financials(
     monthly_mortgage = round(monthly_principal_interest + monthly_insurance)
     total_interest_and_insurance = max(0, round((monthly_mortgage * months) - loan_amount))
 
+    # Initial month 1 capital vs interest breakdown (equity building)
+    initial_month_interest = round(loan_amount * monthly_rate)
+    initial_month_capital = max(0, round(monthly_principal_interest - (loan_amount * monthly_rate)))
+
     # Taxe foncière (known or estimated ~16 €/m2/year in Rouen agglomeration)
     taxe_fonciere_an = int(listing.get("taxe_fonciere") or 0)
     taxe_fonciere_estimated = False
@@ -87,6 +91,17 @@ def compute_financials(
         recommended_offer = round(price * 0.94 - (travaux * 0.35), -2)
     recommended_offer = int(min(price, max(price * 0.80, recommended_offer)))
 
+    # Current rental comparison
+    current_rent = float(settings.get("current_rent", 715.0) if settings.get("current_rent") is not None else 715.0)
+    current_energy = float(settings.get("current_energy", 127.45) if settings.get("current_energy") is not None else 127.45)
+    current_insurance = float(settings.get("current_insurance", 10.0) if settings.get("current_insurance") is not None else 10.0)
+    current_internet = float(settings.get("current_internet", 25.99) if settings.get("current_internet") is not None else 25.99)
+    current_housing_monthly = round(current_rent + current_energy + current_insurance, 2)
+    current_housing_total = round(current_housing_monthly + current_internet, 2)
+
+    saut_de_charge = round(true_monthly_cost - current_housing_monthly)
+    surcout_net_perdu = round(saut_de_charge - initial_month_capital)
+
     return {
         "price": price,
         "notary_fees": notary_fees,
@@ -99,6 +114,8 @@ def compute_financials(
         "insurance_rate_pct": round(insurance_rate * 100, 2),
         "monthly_mortgage": monthly_mortgage,
         "total_credit_cost": total_interest_and_insurance,
+        "initial_month_capital": initial_month_capital,
+        "initial_month_interest": initial_month_interest,
         "taxe_fonciere_an": taxe_fonciere_an,
         "taxe_fonciere_estimated": taxe_fonciere_estimated,
         "energy_an": energy_an,
@@ -110,6 +127,14 @@ def compute_financials(
         "recommended_offer_price": recommended_offer,
         "potential_discount_eur": max(0, price - recommended_offer),
         "potential_discount_pct": round(((price - recommended_offer) / price) * 100, 1) if price > 0 else 0,
+        "current_rent": current_rent,
+        "current_energy": current_energy,
+        "current_insurance": current_insurance,
+        "current_internet": current_internet,
+        "current_housing_monthly": current_housing_monthly,
+        "current_housing_total": current_housing_total,
+        "saut_de_charge": saut_de_charge,
+        "surcout_net_perdu": surcout_net_perdu,
     }
 
 

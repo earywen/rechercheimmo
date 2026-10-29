@@ -458,7 +458,7 @@ function renderDetail(item) {
         <div class="metric-cell">
           <span class="metric-label">Vrai Coût Mensuel</span>
           <span class="metric-val" style="color:var(--accent);">${fmtEur(fin.true_monthly_cost)}/mois</span>
-          <span class="metric-sub">Crédit + TF + énergie + entretien</span>
+          <span class="metric-sub">${fin.saut_de_charge !== undefined ? `<strong style="color:var(--accent);">+${fmtEur(fin.saut_de_charge)}/m</strong> vs loyer actuel` : "Crédit + TF + énergie + entretien"}</span>
         </div>
         <div class="metric-cell">
           <span class="metric-label">Prix &amp; Offre Conseillée</span>
@@ -599,6 +599,30 @@ function renderDetail(item) {
                 </tr>
               </tbody>
             </table>
+
+            <div class="rental-comparison-box" style="margin-top:0.75rem; background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.75rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                <strong style="font-size:0.86rem; color:var(--ink);">⚖️ Comparatif vs Location Actuelle (${fmtEur(fin.current_housing_monthly || 852.45)}/m)</strong>
+                <span class="tag" style="font-size:0.72rem;">Loyer 715 € + Élec 127 € + Assur 10 €</span>
+              </div>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:0.5rem; margin-top:0.4rem;">
+                <div style="background:var(--bg); padding:0.5rem; border-radius:4px; border:1px solid var(--border);">
+                  <div style="font-size:0.72rem; color:var(--ink-muted); text-transform:uppercase; font-weight:600;">Saut de trésorerie</div>
+                  <div style="font-size:1.05rem; font-weight:700; color:var(--accent); margin:0.15rem 0;">+${fmtEur(fin.saut_de_charge || 0)} / mois</div>
+                  <div style="font-size:0.72rem; color:var(--ink-muted); line-height:1.2;">À sortir en plus chaque mois sur vos comptes</div>
+                </div>
+                <div style="background:var(--bg); padding:0.5rem; border-radius:4px; border:1px solid var(--border);">
+                  <div style="font-size:0.72rem; color:var(--ink-muted); text-transform:uppercase; font-weight:600;">Dont Capital Constitué</div>
+                  <div style="font-size:1.05rem; font-weight:700; color:var(--ok-ink); margin:0.15rem 0;">+${fmtEur(fin.initial_month_capital || 0)} / mois</div>
+                  <div style="font-size:0.72rem; color:var(--ink-muted); line-height:1.2;">Épargne forcée (patrimoine qui vous revient)</div>
+                </div>
+                <div style="background:var(--bg); padding:0.5rem; border-radius:4px; border:1px solid var(--border);">
+                  <div style="font-size:0.72rem; color:var(--ink-muted); text-transform:uppercase; font-weight:600;">Surcoût net "perdu"</div>
+                  <div style="font-size:1.05rem; font-weight:700; color:var(--ink); margin:0.15rem 0;">+${fmtEur(fin.surcout_net_perdu || 0)} / mois</div>
+                  <div style="font-size:0.72rem; color:var(--ink-muted); line-height:1.2;">Taxe foncière + intérêts + énergie maison</div>
+                </div>
+              </div>
+            </div>
 
             <div class="section-header" style="margin-top:0.5rem;">
               <h3>Postes de Travaux Estimés</h3>
@@ -1282,6 +1306,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("s_insurance_rate").value = SETTINGS.insurance_rate || 0.34;
     document.getElementById("s_min_bedrooms").value = SETTINGS.min_bedrooms || 2;
     document.getElementById("s_madame_max").value = SETTINGS.madame_max_transit_min || 45;
+    document.getElementById("s_current_rent").value = SETTINGS.current_rent !== undefined ? SETTINGS.current_rent : 715;
+    document.getElementById("s_current_energy").value = SETTINGS.current_energy !== undefined ? SETTINGS.current_energy : 127.45;
+    document.getElementById("s_current_insurance").value = SETTINGS.current_insurance !== undefined ? SETTINGS.current_insurance : 10;
+    document.getElementById("s_current_internet").value = SETTINGS.current_internet !== undefined ? SETTINGS.current_internet : 25.99;
     document.getElementById("settingsDialog").showModal();
   });
 
@@ -1378,6 +1406,10 @@ document.addEventListener("DOMContentLoaded", () => {
       insurance_rate: Number(document.getElementById("s_insurance_rate").value),
       min_bedrooms: Number(document.getElementById("s_min_bedrooms").value),
       madame_max_transit_min: Number(document.getElementById("s_madame_max").value),
+      current_rent: Number(document.getElementById("s_current_rent").value),
+      current_energy: Number(document.getElementById("s_current_energy").value),
+      current_insurance: Number(document.getElementById("s_current_insurance").value),
+      current_internet: Number(document.getElementById("s_current_internet").value),
     };
     await fetch("/api/settings", {
       method: "PUT",
