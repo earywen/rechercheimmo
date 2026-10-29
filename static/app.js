@@ -1043,7 +1043,7 @@ function renderDetail(item) {
 
             <div class="section-header" style="margin-top:1rem; border-top:1px solid var(--border); padding-top:0.75rem;">
               <h3>Documents Enregistrés (${documents.length})</h3>
-              ${documents.length > 0 ? `<button type="button" class="btn btn-primary btn-sm" onclick="triggerDeepAiAudit(${item.id})" title="Relance l'audit agy en confrontant ces pièces">⚡ Relancer l'Audit IA avec ces pièces</button>` : ""}
+              ${documents.length > 0 ? `<button type="button" class="btn btn-primary btn-sm" id="btnReanalyzeDocs" onclick="triggerDeepAiAudit(${item.id})" title="Relance l'audit agy en confrontant ces pièces">⚡ Relancer l'Audit IA avec ces pièces</button>` : ""}
             </div>
             ${documentsHtml}
           </div>
@@ -1200,9 +1200,14 @@ async function toggleChecklistItem(id, idx, checked) {
 
 async function triggerDeepAiAudit(id) {
   const btn = document.getElementById("btnRunDeepAi");
+  const docBtn = document.getElementById("btnReanalyzeDocs");
   if (btn) {
     btn.disabled = true;
     btn.textContent = "Audit IA agy en cours...";
+  }
+  if (docBtn) {
+    docBtn.disabled = true;
+    docBtn.textContent = "⏳ Audit IA en cours (1 à 2 min)...";
   }
   try {
     const res = await fetch(`/api/listings/${id}/reanalyze`, {
@@ -1220,6 +1225,10 @@ async function triggerDeepAiAudit(id) {
     if (btn) {
       btn.disabled = false;
       btn.textContent = "Relancer l'Audit IA (agy)";
+    }
+    if (docBtn) {
+      docBtn.disabled = false;
+      docBtn.textContent = "⚡ Relancer l'Audit IA avec ces pièces";
     }
   }
 }

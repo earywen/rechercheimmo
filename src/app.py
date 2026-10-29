@@ -225,7 +225,15 @@ async def _analyze_listing_pipeline(listing_id: int, run_deep_ai: bool = False) 
     has_deep_audit = (current_audit.get("engine") or "").startswith("Audit IA Approfondi")
 
     if run_deep_ai:
-        ai_audit = await run_agy_deep_audit(merged_listing, enrichment, temp_finance, temp_scoring)
+        deep_res = await run_agy_deep_audit(merged_listing, enrichment, temp_finance, temp_scoring)
+        if (deep_res.get("engine") or "").startswith("Audit IA Approfondi"):
+            ai_audit = deep_res
+        elif has_deep_audit:
+            # Preserve existing deep audit if new run failed or was rejected!
+            print(f"[reanalyze] Warning: New deep audit did not return deep result; preserving existing deep audit for listing {listing_id}", flush=True)
+            ai_audit = dict(current_audit)
+        else:
+            ai_audit = deep_res
     elif has_deep_audit:
         ai_audit = dict(current_audit)
     else:

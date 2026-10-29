@@ -13,22 +13,69 @@ AGY_BIN = shutil.which("agy") or "/home/beelink/.local/bin/agy"
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:
+    if not text:
+        return None
     text = text.strip()
-    # Strip markdown code fences if present
-    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, flags=re.DOTALL)
+
+    # 1. Direct parse
+    try:
+        data = json.loads(text, strict=False)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+
+    # 2. Markdown fence extraction (```json ... ``` or ``` ... ```)
+    m = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
     if m:
+        snippet = m.group(1).strip()
         try:
-            return json.loads(m.group(1))
+            data = json.loads(snippet, strict=False)
+            if isinstance(data, dict):
+                return data
         except Exception:
             pass
-    # Find outermost braces
+
+    # 3. Outer braces { ... }
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
+        candidate = text[start : end + 1]
         try:
-            return json.loads(text[start : end + 1])
+            data = json.loads(candidate, strict=False)
+            if isinstance(data, dict):
+                return data
         except Exception:
             pass
+
+        # 4. Clean trailing commas & comments
+        cleaned = re.sub(r",\s*([\}\]])", r"\1", candidate)
+        cleaned = re.sub(r"//[^\n\r]*", "", cleaned)
+        try:
+            data = json.loads(cleaned, strict=False)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
+        # 5. Handle unescaped newlines / tabs
+        cleaned = cleaned.replace("\r\n", "\n")
+        try:
+            data = json.loads(cleaned, strict=False)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
+        # 6. Regex repair for unescaped interior double quotes in values
+        try:
+            repaired = re.sub(r'(?<=:\s")([^"]*)"([^"]*)(?=")', r'\1\"\2', cleaned)
+            data = json.loads(repaired, strict=False)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
     return None
 
 
@@ -378,6 +425,10 @@ async def run_agy_deep_audit(
         "}"
     )
 
+    current_audit = listing.get("ai_audit") or {}
+    has_deep_audit = (current_audit.get("engine") or "").startswith("Audit IA Approfondi")
+    fallback_audit = current_audit if has_deep_audit else base_audit
+
     import tempfile
 
     prompt_file = None
@@ -395,7 +446,7 @@ async def run_agy_deep_audit(
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120.0)
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=180.0)
         raw_out = stdout.decode("utf-8", errors="ignore").strip()
         outer = json.loads(raw_out) if raw_out else {}
         resp_text = outer.get("response", "") if isinstance(outer, dict) else raw_out
@@ -412,4 +463,4 @@ async def run_agy_deep_audit(
         if prompt_file and prompt_file.exists():
             prompt_file.unlink(missing_ok=True)
 
-    return base_audit
+    return fallback_audit
