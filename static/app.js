@@ -413,6 +413,8 @@ function renderDetail(item) {
     </li>
   `).join("");
 
+  const addrQuery = item.address_resolved || item.address_input || `${item.lat},${item.lon}`;
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addrQuery)}`;
   const streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${item.lat},${item.lon}`;
   const geoportailUrl = `https://www.geoportail.gouv.fr/carte?c=${item.lon},${item.lat}&z=19&l0=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2::GEOPORTAIL:OGC:WMTS(1)&l1=CADASTRALPARCELS.PARCELLAIRE_EXPRESS::GEOPORTAIL:OGC:WMTS(1)&permalink=yes`;
   const offerTarget = ai.negotiation_strategy?.target_offer_eur || fin.recommended_offer_price;
@@ -476,9 +478,10 @@ function renderDetail(item) {
           <h2>${item.title}</h2>
           <div class="hero-address">
             ${item.address_resolved || item.address_input}
-            — <a href="${streetViewUrl}" target="_blank">Street View</a>
-            · <a href="${geoportailUrl}" target="_blank">Cadastre IGN</a>
-            ${item.source_url ? `· <a href="${item.source_url}" target="_blank">Annonce originale</a>` : ""}
+            — <a href="${googleMapsUrl}" target="_blank" rel="noopener">Google Maps</a>
+            · <a href="${streetViewUrl}" target="_blank" rel="noopener">Street View</a>
+            · <a href="${geoportailUrl}" target="_blank" rel="noopener">Cadastre IGN</a>
+            ${item.source_url ? `· <a href="${item.source_url}" target="_blank" rel="noopener">Annonce originale</a>` : ""}
           </div>
         </div>
 
@@ -592,7 +595,10 @@ function renderDetail(item) {
           <div class="editorial-section">
             <div class="section-header">
               <h3>Carte Cadastrale &amp; Environnement</h3>
-              <span class="tag">Marqueur déplaçable</span>
+              <div style="display:flex; gap:0.5rem; align-items:center;">
+                <a href="${googleMapsUrl}" target="_blank" rel="noopener" class="tag" style="text-decoration:none; color:var(--accent); cursor:pointer;" title="Ouvrir cette adresse dans Google Maps">Google Maps ↗</a>
+                <span class="tag">Marqueur déplaçable</span>
+              </div>
             </div>
             <div id="propertyMap"></div>
             <div style="display:flex; gap:0.85rem; flex-wrap:wrap; font-size:0.8rem; color:var(--ink-muted);">
