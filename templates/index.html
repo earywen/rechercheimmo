@@ -321,6 +321,22 @@
     </div>
   </dialog>
 
+  <!-- MODAL 6: Visualiseur Photos HD Plein Écran (Lightbox) -->
+  <dialog id="photoLightboxDialog" class="lightbox-dialog" closedby="any" aria-label="Visualiseur photos HD plein écran">
+    <div class="lightbox-topbar">
+      <span id="lightboxBadge" class="lightbox-badge">Photo 1 / 1</span>
+      <button type="button" class="btn btn-sm lightbox-close-btn" onclick="closePhotoLightbox()" aria-label="Fermer la vue plein écran">✕ Fermer (Échap)</button>
+    </div>
+    <div class="lightbox-viewport" onclick="if(event.target===this)closePhotoLightbox()">
+      <button type="button" class="lightbox-nav-btn lightbox-nav-prev" onclick="stepLightboxPhoto(-1)" aria-label="Photo précédente">‹</button>
+      <div id="lightboxImgContainer" style="display:flex; align-items:center; justify-content:center; max-width:100%; max-height:100%;"></div>
+      <button type="button" class="lightbox-nav-btn lightbox-nav-next" onclick="stepLightboxPhoto(1)" aria-label="Photo suivante">›</button>
+    </div>
+    <div class="lightbox-footer">
+      <div class="lightbox-thumbs" id="lightboxThumbs" role="tablist" aria-label="Miniatures photos"></div>
+    </div>
+  </dialog>
+
   <script>
     function openBookmarkletModal() {
       const dlg = document.getElementById('bookmarkletDialog');
@@ -342,6 +358,6 @@
   </script>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/static/app.js?v=3.2"></script>
+  <script src="/static/app.js?v=3.3"></script>
 </body>
 </html>

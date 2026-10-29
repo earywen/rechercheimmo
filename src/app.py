@@ -9,6 +9,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+import httpx
+
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -336,8 +338,41 @@ async def api_get_listing(listing_id: int) -> JSONResponse:
     return JSONResponse(item)
 
 
+async def filter_valid_photo_urls(urls: list[str]) -> list[str]:
+    """Validate and filter reachable photo URLs concurrently."""
+    if not urls:
+        return []
+    clean_urls: list[str] = []
+    seen: set[str] = set()
+    for u in urls:
+        if isinstance(u, str) and u.strip() and u.strip() not in seen:
+            seen.add(u.strip())
+            clean_urls.append(u.strip())
+
+    async with httpx.AsyncClient(timeout=3.5, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"}) as client:
+        async def check(u: str) -> str | None:
+            if u.startswith("/api/"):
+                return u
+            if not u.startswith("http"):
+                return None
+            try:
+                resp = await client.head(u)
+                if resp.status_code == 200:
+                    return u
+            except Exception:
+                pass
+            return None
+
+        results = await asyncio.gather(*(check(u) for u in clean_urls))
+        return [u for u in results if u is not None]
+
+
 @app.post("/api/listings")
 async def api_create_listing(payload: dict[str, Any], background_tasks: BackgroundTasks) -> JSONResponse:
+    # Filter valid reachable photo URLs if provided
+    if payload.get("photos"):
+        payload["photos"] = await filter_valid_photo_urls(payload["photos"])
+
     # Check if a listing with the same source_url already exists
     src_url = (payload.get("source_url") or "").strip()
     if src_url:
@@ -379,6 +414,9 @@ async def api_update_listing(listing_id: int, payload: dict[str, Any]) -> JSONRe
     existing = get_listing(listing_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Annonce introuvable")
+
+    if payload.get("photos"):
+        payload["photos"] = await filter_valid_photo_urls(payload["photos"])
 
     reanalyze = bool(payload.pop("reanalyze", False))
     saved = save_listing(payload, listing_id=listing_id)

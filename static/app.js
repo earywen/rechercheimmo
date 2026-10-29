@@ -418,7 +418,7 @@ function renderDetail(item) {
   const offerTarget = ai.negotiation_strategy?.target_offer_eur || fin.recommended_offer_price;
 
   const photos = item.photos || [];
-  window.CURRENT_GALLERY_PHOTOS = photos;
+  window.CURRENT_GALLERY_PHOTOS = [...photos];
   window.CURRENT_GALLERY_INDEX = 0;
 
   let galleryHtml = "";
@@ -426,7 +426,13 @@ function renderDetail(item) {
     galleryHtml = `
       <div class="listing-gallery" id="listingGallery">
         <div class="gallery-viewport">
-          <img id="galleryMainImg" class="gallery-main-img" src="${photos[0]}" referrerpolicy="no-referrer" alt="Photo de l'annonce" loading="lazy" />
+          <div class="gallery-blur-bg" id="galleryBlurBg" style="background-image: url('${photos[0]}');"></div>
+          <div class="gallery-frame" onclick="openPhotoLightbox(window.CURRENT_GALLERY_INDEX || 0)" title="Cliquer pour afficher la photo en plein écran">
+            <img id="galleryMainImg" class="gallery-main-img" src="${photos[0]}" referrerpolicy="no-referrer" alt="Photo de l'annonce" onerror="handleGalleryImgError(this, true, 0)" loading="lazy" />
+          </div>
+          <button type="button" class="gallery-fullscreen-btn" onclick="openPhotoLightbox(window.CURRENT_GALLERY_INDEX || 0)" aria-label="Agrandir en plein écran">
+            ⤢ Plein écran
+          </button>
           ${photos.length > 1 ? `
             <button type="button" class="gallery-nav-btn gallery-nav-prev" onclick="stepGalleryPhoto(-1)" aria-label="Photo précédente">‹</button>
             <button type="button" class="gallery-nav-btn gallery-nav-next" onclick="stepGalleryPhoto(1)" aria-label="Photo suivante">›</button>
@@ -436,27 +442,12 @@ function renderDetail(item) {
         ${photos.length > 1 ? `
           <div class="gallery-thumbs" id="galleryThumbs" role="tablist" aria-label="Miniatures des photos">
             ${photos.map((p, idx) => `
-              <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" role="button" tabindex="0" onclick="selectGalleryPhoto(${idx})" onkeydown="if(event.key==='Enter')selectGalleryPhoto(${idx})" aria-label="Afficher la photo ${idx + 1}">
-                <img src="${p}" referrerpolicy="no-referrer" alt="Miniature ${idx + 1}" loading="lazy" />
+              <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" id="thumbItem_${idx}" role="button" tabindex="0" onclick="selectGalleryPhoto(${idx})" onkeydown="if(event.key==='Enter')selectGalleryPhoto(${idx})" aria-label="Afficher la photo ${idx + 1}">
+                <img src="${p}" referrerpolicy="no-referrer" alt="Miniature ${idx + 1}" onerror="handleGalleryImgError(this, false, ${idx})" loading="lazy" />
               </div>
             `).join("")}
           </div>
         ` : ""}
-      </div>
-    `;
-  } else {
-    galleryHtml = `
-      <div class="gallery-empty">
-        <div class="gallery-empty-title">📷 Aucune photo enregistrée</div>
-        <div class="gallery-empty-desc">
-          Capturez automatiquement les photos en 1 clic via l'<strong>Extension Chrome</strong> directement sur l'annonce (LeBonCoin, SeLoger, Bien'ici) ou déposez vos images ci-dessous.
-        </div>
-        <div style="display:flex; gap:0.5rem; margin-top:0.35rem;">
-          <input type="file" id="photoFileInput" multiple accept="image/*" style="display:none;" onchange="onUploadPhotosSelected(${item.id}, this.files)" />
-          <button type="button" class="btn btn-sm" onclick="document.getElementById('photoFileInput').click()">
-            📸 Importer des photos
-          </button>
-        </div>
       </div>
     `;
   }
@@ -488,6 +479,10 @@ function renderDetail(item) {
         </div>
 
         <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+          <input type="file" id="photoFileInput" multiple accept="image/*" style="display:none;" onchange="onUploadPhotosSelected(${item.id}, this.files)" />
+          <button type="button" class="btn btn-sm" onclick="document.getElementById('photoFileInput').click()" title="Ajouter ou importer des photos HD pour ce bien">
+            📷 ${photos.length > 0 ? "+ Photos" : "Ajouter photos"}
+          </button>
           <button class="btn btn-primary btn-sm" id="btnRunDeepAi" onclick="triggerDeepAiAudit(${item.id})">
             Relancer l'Audit IA (agy)
           </button>
@@ -1541,17 +1536,25 @@ function selectGalleryPhoto(idx) {
   if (!photos[idx]) return;
   window.CURRENT_GALLERY_INDEX = idx;
   const mainImg = document.getElementById("galleryMainImg");
+  const blurBg = document.getElementById("galleryBlurBg");
   const badge = document.getElementById("galleryBadge");
   if (mainImg) {
     mainImg.src = photos[idx];
+  }
+  if (blurBg) {
+    blurBg.style.backgroundImage = `url('${photos[idx]}')`;
   }
   if (badge) {
     badge.textContent = `${idx + 1} / ${photos.length} photos`;
   }
   const thumbs = document.querySelectorAll(".gallery-thumb-item");
   thumbs.forEach((th, i) => {
-    if (i === idx) th.classList.add("active");
-    else th.classList.remove("active");
+    if (i === idx) {
+      th.classList.add("active");
+      th.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    } else {
+      th.classList.remove("active");
+    }
   });
 }
 
@@ -1563,6 +1566,103 @@ function stepGalleryPhoto(delta) {
   if (next >= photos.length) next = 0;
   selectGalleryPhoto(next);
 }
+
+function openPhotoLightbox(index) {
+  const photos = window.CURRENT_GALLERY_PHOTOS || [];
+  if (!photos || photos.length === 0) return;
+  window.CURRENT_LIGHTBOX_INDEX =
+    typeof index === "number" && index >= 0 && index < photos.length
+      ? index
+      : window.CURRENT_GALLERY_INDEX || 0;
+  const dlg = document.getElementById("photoLightboxDialog");
+  if (!dlg) return;
+
+  const thumbsContainer = document.getElementById("lightboxThumbs");
+  if (thumbsContainer) {
+    thumbsContainer.innerHTML = photos
+      .map(
+        (p, idx) => `
+      <div class="lightbox-thumb-item ${idx === window.CURRENT_LIGHTBOX_INDEX ? "active" : ""}" id="lbThumb_${idx}" onclick="selectLightboxPhoto(${idx})" role="button" tabindex="0" aria-label="Photo ${idx + 1}">
+        <img src="${p}" alt="Miniature ${idx + 1}" onerror="handleGalleryImgError(this, false, ${idx})" />
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  updateLightboxView();
+  dlg.showModal();
+}
+
+function closePhotoLightbox() {
+  const dlg = document.getElementById("photoLightboxDialog");
+  if (dlg && dlg.open) dlg.close();
+}
+
+function selectLightboxPhoto(idx) {
+  const photos = window.CURRENT_GALLERY_PHOTOS || [];
+  if (!photos[idx]) return;
+  window.CURRENT_LIGHTBOX_INDEX = idx;
+  updateLightboxView();
+}
+
+function stepLightboxPhoto(delta) {
+  const photos = window.CURRENT_GALLERY_PHOTOS || [];
+  if (photos.length <= 1) return;
+  let next = (window.CURRENT_LIGHTBOX_INDEX || 0) + delta;
+  if (next < 0) next = photos.length - 1;
+  if (next >= photos.length) next = 0;
+  selectLightboxPhoto(next);
+}
+
+function updateLightboxView() {
+  const photos = window.CURRENT_GALLERY_PHOTOS || [];
+  const idx = window.CURRENT_LIGHTBOX_INDEX || 0;
+  const container = document.getElementById("lightboxImgContainer");
+  const badge = document.getElementById("lightboxBadge");
+  if (container && photos[idx]) {
+    container.innerHTML = `<img id="lightboxMainImg" class="lightbox-img" src="${photos[idx]}" alt="Photo HD ${idx + 1}" onerror="handleGalleryImgError(this, true, ${idx})" />`;
+  }
+  if (badge) {
+    badge.textContent = `Photo ${idx + 1} / ${photos.length}`;
+  }
+  const thumbs = document.querySelectorAll(".lightbox-thumb-item");
+  thumbs.forEach((th, i) => {
+    if (i === idx) {
+      th.classList.add("active");
+      th.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    } else {
+      th.classList.remove("active");
+    }
+  });
+}
+
+function handleGalleryImgError(imgEl, isMain, idx) {
+  console.warn("Photo non accessible :", imgEl ? imgEl.src : "");
+  if (isMain) {
+    const photos = window.CURRENT_GALLERY_PHOTOS || [];
+    if (photos.length > 1) {
+      stepGalleryPhoto(1);
+    }
+  } else if (imgEl) {
+    const parent = imgEl.closest(".gallery-thumb-item, .lightbox-thumb-item");
+    if (parent) parent.style.display = "none";
+  }
+}
+
+// Navigation clavier pour la Lightbox
+window.addEventListener("keydown", (e) => {
+  const lbDlg = document.getElementById("photoLightboxDialog");
+  if (lbDlg && lbDlg.open) {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      stepLightboxPhoto(-1);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      stepLightboxPhoto(1);
+    }
+  }
+});
 
 async function onUploadPhotosSelected(listingId, files) {
   if (!files || files.length === 0) return;

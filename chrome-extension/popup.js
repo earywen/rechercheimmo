@@ -70,35 +70,39 @@ function extractPageData() {
     }
   } catch (e) {}
 
-  // 2. Scripts JSON intégrés (Bien'ici, Figaro, agences)
-  try {
-    const scripts = document.querySelectorAll("script");
-    for (const sc of scripts) {
-      const content = sc.textContent || "";
-      if (
-        content.includes("urls_large") ||
-        content.includes("photos.bienici.com") ||
-        content.includes("img.leboncoin.fr") ||
-        content.includes("lbcpb/images")
-      ) {
-        const matches = content.match(/https?:\/\/[^"'\s]+\.(?:jpg|jpeg|webp|png)(?:\?[^"'\s]*)?/gi);
-        if (matches) {
-          matches.slice(0, 30).forEach(addPhoto);
+  // 2. Scripts JSON intégrés (Bien'ici, Figaro, agences) - SEULEMENT si aucune photo trouvée via __NEXT_DATA__
+  if (photos.length === 0) {
+    try {
+      const scripts = document.querySelectorAll("script");
+      for (const sc of scripts) {
+        const content = sc.textContent || "";
+        if (
+          content.includes("urls_large") ||
+          content.includes("photos.bienici.com") ||
+          content.includes("img.leboncoin.fr") ||
+          content.includes("lbcpb/images")
+        ) {
+          const matches = content.match(/https?:\/\/[^"'\s]+\.(?:jpg|jpeg|webp|png)(?:\?[^"'\s]*)?/gi);
+          if (matches) {
+            matches.slice(0, 30).forEach(addPhoto);
+          }
         }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
+  }
 
-  // 3. Fallback balises <img> du carrousel et des galeries
-  try {
-    const imgEls = document.querySelectorAll(
-      '[data-qa-id*="image"] img, [data-qa-id="slideshow"] img, [class*="gallery"] img, [class*="carousel"] img, [class*="slider"] img, [class*="photo"] img, img[src*="leboncoin.fr/api/v1/lbcpb/images"], img[src*="img.leboncoin.fr"], img[src*="photos.bienici.com"], img[src*="sl.sl-c.net"], img[src*="seloger.com"]'
-    );
-    imgEls.forEach((img) => {
-      const src = img.currentSrc || img.src || img.getAttribute("data-src") || img.getAttribute("data-lazy");
-      addPhoto(src);
-    });
-  } catch (e) {}
+  // 3. Fallback balises <img> du carrousel et des galeries - SEULEMENT si aucune photo trouvée
+  if (photos.length === 0) {
+    try {
+      const imgEls = document.querySelectorAll(
+        '[data-qa-id*="image"] img, [data-qa-id="slideshow"] img, [class*="gallery"] img, [class*="carousel"] img, [class*="slider"] img, [class*="photo"] img, img[src*="leboncoin.fr/api/v1/lbcpb/images"], img[src*="img.leboncoin.fr"], img[src*="photos.bienici.com"], img[src*="sl.sl-c.net"], img[src*="seloger.com"]'
+      );
+      imgEls.forEach((img) => {
+        const src = img.currentSrc || img.src || img.getAttribute("data-src") || img.getAttribute("data-lazy");
+        addPhoto(src);
+      });
+    } catch (e) {}
+  }
 
   return {
     title: title.slice(0, 120),
