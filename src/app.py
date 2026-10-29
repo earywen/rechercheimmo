@@ -305,6 +305,19 @@ async def api_get_settings() -> JSONResponse:
 @app.put("/api/settings")
 async def api_update_settings(payload: dict[str, Any]) -> JSONResponse:
     updated = update_settings(payload)
+    for item in list_listings():
+        fin = compute_financials(item, item.get("enrichment", {}), updated)
+        sco = compute_scoring_and_dealbreakers(item, item.get("enrichment", {}), fin, updated)
+        save_listing(
+            {
+                "finance": fin,
+                "scoring": sco,
+                "score_total": sco["total_score"],
+                "dealbreakers_count": len(sco["dealbreakers"]),
+                "true_monthly_cost": fin["true_monthly_cost"],
+            },
+            listing_id=item["id"],
+        )
     return JSONResponse(updated)
 
 

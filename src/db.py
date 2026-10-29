@@ -22,7 +22,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "max_budget": 275000,
     "apport": 80000,
     "loan_years": 25,
-    "interest_rate": 3.35,
+    "interest_rate": 3.65,
     "insurance_rate": 0.34,
     "notary_rate_old": 7.8,
     "min_bedrooms": 2,
