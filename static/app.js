@@ -424,30 +424,34 @@ function renderDetail(item) {
   let galleryHtml = "";
   if (photos.length > 0) {
     galleryHtml = `
-      <div class="listing-gallery" id="listingGallery" style="margin-bottom:1.25rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;">
-        <div class="gallery-viewport" style="position:relative; width:100%; height:320px; background:#090d16; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-          <div class="gallery-blur-bg" id="galleryBlurBg" style="background-image: url('${photos[0]}'); position:absolute; inset:-20px; background-size:cover; background-position:center; filter:blur(28px) brightness(0.4); opacity:0.55; transform:scale(1.15); pointer-events:none;"></div>
-          <div class="gallery-frame" onclick="openPhotoLightbox(window.CURRENT_GALLERY_INDEX || 0)" title="Cliquer pour afficher la photo en plein écran" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; z-index:1; cursor:zoom-in;">
-            <img id="galleryMainImg" class="gallery-main-img" src="${photos[0]}" referrerpolicy="no-referrer" alt="Photo de l'annonce" onerror="handleGalleryImgError(this, true, 0)" loading="lazy" style="max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; border-radius:4px;" />
-          </div>
-          <button type="button" class="gallery-fullscreen-btn" onclick="openPhotoLightbox(window.CURRENT_GALLERY_INDEX || 0)" aria-label="Agrandir en plein écran">
-            ⤢ Plein écran
-          </button>
-          ${photos.length > 1 ? `
-            <button type="button" class="gallery-nav-btn gallery-nav-prev" onclick="stepGalleryPhoto(-1)" aria-label="Photo précédente">‹</button>
-            <button type="button" class="gallery-nav-btn gallery-nav-next" onclick="stepGalleryPhoto(1)" aria-label="Photo suivante">›</button>
-          ` : ""}
-          <div class="gallery-badge" id="galleryBadge">1 / ${photos.length} photos</div>
+      <div class="hero-carousel" id="listingGallery" style="position:relative; width:100%; max-width:380px; height:125px; background:#090d16; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
+        <div class="gallery-blur-bg" id="galleryBlurBg" style="background-image: url('${photos[0]}'); position:absolute; inset:-15px; background-size:cover; background-position:center; filter:blur(22px) brightness(0.4); opacity:0.55; transform:scale(1.15); pointer-events:none;"></div>
+        <div class="gallery-frame" onclick="openPhotoLightbox(window.CURRENT_GALLERY_INDEX || 0)" title="Cliquer pour afficher la photo en grand écran (HD)" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; z-index:1; cursor:zoom-in;">
+          <img id="galleryMainImg" class="gallery-main-img" src="${photos[0]}" referrerpolicy="no-referrer" alt="Photo de l'annonce" onerror="handleGalleryImgError(this, true, 0)" loading="lazy" style="max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; border-radius:4px;" />
         </div>
+        <button type="button" class="gallery-fullscreen-btn" onclick="openPhotoLightbox(window.CURRENT_GALLERY_INDEX || 0)" aria-label="Agrandir en plein écran" style="position:absolute; top:6px; right:6px; background:rgba(15,23,42,0.85); color:#ffffff; border:1px solid rgba(255,255,255,0.25); border-radius:5px; padding:0.2rem 0.45rem; font-size:0.72rem; font-weight:600; cursor:pointer; z-index:2; backdrop-filter:blur(4px);">
+          ⤢ Plein écran
+        </button>
         ${photos.length > 1 ? `
-          <div class="gallery-thumbs" id="galleryThumbs" role="tablist" aria-label="Miniatures des photos" style="display:flex; flex-direction:row; gap:0.5rem; padding:0.6rem 0.75rem; overflow-x:auto; background:var(--surface); border-top:1px solid var(--border); max-height:64px;">
-            ${photos.map((p, idx) => `
-              <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" id="thumbItem_${idx}" role="button" tabindex="0" onclick="selectGalleryPhoto(${idx})" onkeydown="if(event.key==='Enter')selectGalleryPhoto(${idx})" aria-label="Afficher la photo ${idx + 1}" style="flex:0 0 68px; width:68px; height:48px; min-width:68px; max-width:68px; border-radius:5px; overflow:hidden; cursor:pointer; flex-shrink:0;">
-                <img src="${p}" referrerpolicy="no-referrer" alt="Miniature ${idx + 1}" onerror="handleGalleryImgError(this, false, ${idx})" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block;" />
-              </div>
+          <button type="button" class="gallery-nav-btn gallery-nav-prev" onclick="stepGalleryPhoto(-1)" aria-label="Photo précédente" style="position:absolute; top:50%; transform:translateY(-50%); left:6px; width:28px; height:28px; border-radius:50%; background:rgba(15,23,42,0.8); color:#ffffff; border:1px solid rgba(255,255,255,0.2); font-size:1.1rem; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2;">‹</button>
+          <button type="button" class="gallery-nav-btn gallery-nav-next" onclick="stepGalleryPhoto(1)" aria-label="Photo suivante" style="position:absolute; top:50%; transform:translateY(-50%); right:6px; width:28px; height:28px; border-radius:50%; background:rgba(15,23,42,0.8); color:#ffffff; border:1px solid rgba(255,255,255,0.2); font-size:1.1rem; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2;">›</button>
+        ` : ""}
+        <div class="gallery-badge" id="galleryBadge" style="position:absolute; bottom:6px; right:6px; background:rgba(15,23,42,0.85); color:#ffffff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:0.15rem 0.45rem; font-size:0.7rem; font-weight:650; z-index:2;">1 / ${photos.length} photos</div>
+        ${photos.length > 1 ? `
+          <div class="gallery-dots" id="galleryDots" style="position:absolute; bottom:8px; left:10px; display:flex; gap:4px; z-index:2;">
+            ${photos.map((_, idx) => `
+              <span class="gallery-dot ${idx === 0 ? 'active' : ''}" id="galleryDot_${idx}" onclick="selectGalleryPhoto(${idx})" style="width:${idx === 0 ? '14px' : '5px'}; height:5px; border-radius:3px; background:${idx === 0 ? 'var(--accent)' : 'rgba(255,255,255,0.5)'}; transition:all 0.2s ease; cursor:pointer;" title="Afficher la photo ${idx + 1}"></span>
             `).join("")}
           </div>
         ` : ""}
+      </div>
+    `;
+  } else {
+    galleryHtml = `
+      <div class="hero-carousel-empty" onclick="document.getElementById('photoFileInput').click()" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.25rem; border:1px dashed var(--border-strong); border-radius:var(--radius); height:125px; width:100%; max-width:320px; background:var(--surface-subtle); color:var(--ink-muted); font-size:0.78rem; text-align:center; padding:0.5rem; transition:border-color 0.15s ease;">
+        <span style="font-size:1.3rem;">📷</span>
+        <span style="font-weight:600; color:var(--ink);">+ Ajouter des photos</span>
+        <span style="font-size:0.7rem; color:var(--ink-muted);">Capture 1-clic ou fichier</span>
       </div>
     `;
   }
@@ -457,7 +461,7 @@ function renderDetail(item) {
     <article class="dossier-sheet">
       <!-- 1. EN-TÊTE DE DÉCISION FIXE & ÉPURÉ -->
       <header class="hero-header">
-        <div>
+        <div class="hero-identity">
           <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.45rem;">
             <span class="score-badge ${scoreClass(item.score_total)}" style="font-size:0.95rem; height:30px; padding:0 0.65rem;">
               Score ${item.score_total}/100
@@ -478,7 +482,12 @@ function renderDetail(item) {
           </div>
         </div>
 
-        <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+        <!-- CARROUSEL DANS LE BANDEAU DU HAUT (RECTANGLE ROUGE) -->
+        <div class="hero-carousel-wrap">
+          ${galleryHtml}
+        </div>
+
+        <div class="hero-actions">
           <input type="file" id="photoFileInput" multiple accept="image/*" style="display:none;" onchange="onUploadPhotosSelected(${item.id}, this.files)" />
           <button type="button" class="btn btn-sm" onclick="document.getElementById('photoFileInput').click()" title="Ajouter ou importer des photos HD pour ce bien">
             📷 ${photos.length > 0 ? "+ Photos" : "Ajouter photos"}
@@ -515,9 +524,6 @@ function renderDetail(item) {
           <span class="metric-sub">Terrain ${Math.round(item.land_m2 || cad.contenance_m2 || 0)} m² · ${item.bedrooms || "?"} chambres</span>
         </div>
       </div>
-
-      <!-- GALERIE PHOTOS / CARROUSEL -->
-      ${galleryHtml}
 
       <!-- 3. BARRE D'ONGLETS THÉMATIQUES (PROGRESSIVE DISCLOSURE) -->
       <nav class="dossier-tabs" role="tablist" aria-label="Sections du dossier immobilier">
@@ -1547,6 +1553,18 @@ function selectGalleryPhoto(idx) {
   if (badge) {
     badge.textContent = `${idx + 1} / ${photos.length} photos`;
   }
+  const dots = document.querySelectorAll(".gallery-dot");
+  dots.forEach((dot, i) => {
+    if (i === idx) {
+      dot.classList.add("active");
+      dot.style.width = "14px";
+      dot.style.background = "var(--accent)";
+    } else {
+      dot.classList.remove("active");
+      dot.style.width = "5px";
+      dot.style.background = "rgba(255,255,255,0.5)";
+    }
+  });
   const thumbs = document.querySelectorAll(".gallery-thumb-item");
   thumbs.forEach((th, i) => {
     if (i === idx) {
