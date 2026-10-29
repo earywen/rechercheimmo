@@ -417,6 +417,50 @@ function renderDetail(item) {
   const geoportailUrl = `https://www.geoportail.gouv.fr/carte?c=${item.lon},${item.lat}&z=19&l0=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2::GEOPORTAIL:OGC:WMTS(1)&l1=CADASTRALPARCELS.PARCELLAIRE_EXPRESS::GEOPORTAIL:OGC:WMTS(1)&permalink=yes`;
   const offerTarget = ai.negotiation_strategy?.target_offer_eur || fin.recommended_offer_price;
 
+  const photos = item.photos || [];
+  window.CURRENT_GALLERY_PHOTOS = photos;
+  window.CURRENT_GALLERY_INDEX = 0;
+
+  let galleryHtml = "";
+  if (photos.length > 0) {
+    galleryHtml = `
+      <div class="listing-gallery" id="listingGallery">
+        <div class="gallery-viewport">
+          <img id="galleryMainImg" class="gallery-main-img" src="${photos[0]}" referrerpolicy="no-referrer" alt="Photo de l'annonce" loading="lazy" />
+          ${photos.length > 1 ? `
+            <button type="button" class="gallery-nav-btn gallery-nav-prev" onclick="stepGalleryPhoto(-1)" aria-label="Photo précédente">‹</button>
+            <button type="button" class="gallery-nav-btn gallery-nav-next" onclick="stepGalleryPhoto(1)" aria-label="Photo suivante">›</button>
+          ` : ""}
+          <div class="gallery-badge" id="galleryBadge">1 / ${photos.length} photos</div>
+        </div>
+        ${photos.length > 1 ? `
+          <div class="gallery-thumbs" id="galleryThumbs" role="tablist" aria-label="Miniatures des photos">
+            ${photos.map((p, idx) => `
+              <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" role="button" tabindex="0" onclick="selectGalleryPhoto(${idx})" onkeydown="if(event.key==='Enter')selectGalleryPhoto(${idx})" aria-label="Afficher la photo ${idx + 1}">
+                <img src="${p}" referrerpolicy="no-referrer" alt="Miniature ${idx + 1}" loading="lazy" />
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
+      </div>
+    `;
+  } else {
+    galleryHtml = `
+      <div class="gallery-empty">
+        <div class="gallery-empty-title">📷 Aucune photo enregistrée</div>
+        <div class="gallery-empty-desc">
+          Capturez automatiquement les photos en 1 clic via l'<strong>Extension Chrome</strong> directement sur l'annonce (LeBonCoin, SeLoger, Bien'ici) ou déposez vos images ci-dessous.
+        </div>
+        <div style="display:flex; gap:0.5rem; margin-top:0.35rem;">
+          <input type="file" id="photoFileInput" multiple accept="image/*" style="display:none;" onchange="onUploadPhotosSelected(${item.id}, this.files)" />
+          <button type="button" class="btn btn-sm" onclick="document.getElementById('photoFileInput').click()">
+            📸 Importer des photos
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
   const container = document.getElementById("detailContainer");
   container.innerHTML = `
     <article class="dossier-sheet">
@@ -476,6 +520,9 @@ function renderDetail(item) {
           <span class="metric-sub">Terrain ${Math.round(item.land_m2 || cad.contenance_m2 || 0)} m² · ${item.bedrooms || "?"} chambres</span>
         </div>
       </div>
+
+      <!-- GALERIE PHOTOS / CARROUSEL -->
+      ${galleryHtml}
 
       <!-- 3. BARRE D'ONGLETS THÉMATIQUES (PROGRESSIVE DISCLOSURE) -->
       <nav class="dossier-tabs" role="tablist" aria-label="Sections du dossier immobilier">
@@ -1478,4 +1525,57 @@ function renderComparisonTable() {
       </tbody>
     </table>
   `;
+}
+
+function selectGalleryPhoto(idx) {
+  const photos = window.CURRENT_GALLERY_PHOTOS || [];
+  if (!photos[idx]) return;
+  window.CURRENT_GALLERY_INDEX = idx;
+  const mainImg = document.getElementById("galleryMainImg");
+  const badge = document.getElementById("galleryBadge");
+  if (mainImg) {
+    mainImg.src = photos[idx];
+  }
+  if (badge) {
+    badge.textContent = `${idx + 1} / ${photos.length} photos`;
+  }
+  const thumbs = document.querySelectorAll(".gallery-thumb-item");
+  thumbs.forEach((th, i) => {
+    if (i === idx) th.classList.add("active");
+    else th.classList.remove("active");
+  });
+}
+
+function stepGalleryPhoto(delta) {
+  const photos = window.CURRENT_GALLERY_PHOTOS || [];
+  if (photos.length <= 1) return;
+  let next = (window.CURRENT_GALLERY_INDEX || 0) + delta;
+  if (next < 0) next = photos.length - 1;
+  if (next >= photos.length) next = 0;
+  selectGalleryPhoto(next);
+}
+
+async function onUploadPhotosSelected(listingId, files) {
+  if (!files || files.length === 0) return;
+  const formData = new FormData();
+  for (let i = 0; i < files.length; i++) {
+    formData.append("files", files[i]);
+  }
+  try {
+    const res = await fetch(`/api/listings/${listingId}/photos`, {
+      method: "POST",
+      body: formData,
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      ALL_LISTINGS = ALL_LISTINGS.map((x) => (x.id === listingId ? updated : x));
+      renderSidebar();
+      renderDetail(updated);
+    } else {
+      alert("Erreur lors de l'enregistrement des photos.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erreur de connexion lors de l'envoi des photos.");
+  }
 }

@@ -31,6 +31,75 @@ function extractPageData() {
   const mCp = text.match(/\b((?:76|27)\d{3})\b/);
   if (mCp) postcode = mCp[1];
 
+  // Extraction automatique des photos de l'annonce (Leboncoin, SeLoger, Bien'ici, PAP, Agences)
+  const photos = [];
+  const addPhoto = (u) => {
+    if (!u || typeof u !== "string") return;
+    const clean = u.trim();
+    if (
+      clean.startsWith("http") &&
+      !photos.includes(clean) &&
+      !clean.includes("avatar") &&
+      !clean.includes("logo") &&
+      !clean.includes("icon") &&
+      !clean.includes("badge")
+    ) {
+      photos.push(clean);
+    }
+  };
+
+  // 1. Next.js payload (__NEXT_DATA__) : Présent sur LeBonCoin, SeLoger, PAP
+  try {
+    const nextDataEl = document.getElementById("__NEXT_DATA__");
+    if (nextDataEl && nextDataEl.textContent) {
+      const parsed = JSON.parse(nextDataEl.textContent);
+      // Leboncoin
+      const lbcImgs = parsed.props?.pageProps?.ad?.images;
+      if (lbcImgs) {
+        const list = lbcImgs.urls_large || lbcImgs.urls || [];
+        list.forEach(addPhoto);
+      }
+      // SeLoger / Logic-Immo
+      const slPhotos =
+        parsed.props?.pageProps?.classified?.photos ||
+        parsed.props?.pageProps?.initialState?.photos ||
+        parsed.props?.pageProps?.listing?.photos;
+      if (Array.isArray(slPhotos)) {
+        slPhotos.forEach((p) => addPhoto(typeof p === "string" ? p : p.url || p.largeUrl || p.highResolutionUrl));
+      }
+    }
+  } catch (e) {}
+
+  // 2. Scripts JSON intégrés (Bien'ici, Figaro, agences)
+  try {
+    const scripts = document.querySelectorAll("script");
+    for (const sc of scripts) {
+      const content = sc.textContent || "";
+      if (
+        content.includes("urls_large") ||
+        content.includes("photos.bienici.com") ||
+        content.includes("img.leboncoin.fr") ||
+        content.includes("lbcpb/images")
+      ) {
+        const matches = content.match(/https?:\/\/[^"'\s]+\.(?:jpg|jpeg|webp|png)(?:\?[^"'\s]*)?/gi);
+        if (matches) {
+          matches.slice(0, 30).forEach(addPhoto);
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 3. Fallback balises <img> du carrousel et des galeries
+  try {
+    const imgEls = document.querySelectorAll(
+      '[data-qa-id*="image"] img, [data-qa-id="slideshow"] img, [class*="gallery"] img, [class*="carousel"] img, [class*="slider"] img, [class*="photo"] img, img[src*="leboncoin.fr/api/v1/lbcpb/images"], img[src*="img.leboncoin.fr"], img[src*="photos.bienici.com"], img[src*="sl.sl-c.net"], img[src*="seloger.com"]'
+    );
+    imgEls.forEach((img) => {
+      const src = img.currentSrc || img.src || img.getAttribute("data-src") || img.getAttribute("data-lazy");
+      addPhoto(src);
+    });
+  } catch (e) {}
+
   return {
     title: title.slice(0, 120),
     price,
@@ -40,6 +109,7 @@ function extractPageData() {
     dpe,
     postcode,
     description: text.slice(0, 6000),
+    photos: photos.slice(0, 30),
   };
 }
 
@@ -67,6 +137,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("dpeInput").value = pageData.dpe || "";
         if (pageData.postcode) {
           document.getElementById("addressInput").value = pageData.postcode + " ";
+        }
+        const photoEl = document.getElementById("photoStatus");
+        if (photoEl) {
+          const nb = (pageData.photos || []).length;
+          if (nb > 0) {
+            photoEl.innerHTML = `📷 <strong style="color:var(--accent);">${nb} photo${nb > 1 ? "s" : ""} détectée${nb > 1 ? "s" : ""}</strong>`;
+          } else {
+            photoEl.textContent = "📷 Aucune photo détectée sur cette page";
+          }
         }
       }
     } catch (err) {
@@ -104,6 +183,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           bedrooms: Number(document.getElementById("bedroomsInput").value || 0),
           dpe_letter: document.getElementById("dpeInput").value.toUpperCase(),
           description: pageData.description || "",
+          photos: pageData.photos || [],
         }),
       });
       if (resp.ok) {

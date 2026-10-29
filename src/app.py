@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from src.ai_service import build_heuristic_audit, run_agy_deep_audit
 from src.db import (
     BASE_DIR,
+    UPLOADS_DIR,
     delete_listing,
     get_listing,
     get_settings,
@@ -29,6 +30,7 @@ from src.document_service import (
     get_document_file,
     remove_document,
     reprocess_listing_documents,
+    sanitize_filename,
     save_uploaded_document,
 )
 from src.dvf_service import ensure_dvf_index
@@ -336,6 +338,21 @@ async def api_get_listing(listing_id: int) -> JSONResponse:
 
 @app.post("/api/listings")
 async def api_create_listing(payload: dict[str, Any], background_tasks: BackgroundTasks) -> JSONResponse:
+    # Check if a listing with the same source_url already exists
+    src_url = (payload.get("source_url") or "").strip()
+    if src_url:
+        for ex in list_listings():
+            if ex.get("source_url") and ex["source_url"].strip() == src_url:
+                updates: dict[str, Any] = {}
+                if payload.get("photos"):
+                    updates["photos"] = payload["photos"]
+                for k in ("title", "price", "surface_m2", "land_m2", "bedrooms", "dpe_letter", "description"):
+                    if payload.get(k) and not ex.get(k):
+                        updates[k] = payload[k]
+                if updates:
+                    save_listing(updates, listing_id=ex["id"])
+                return JSONResponse(get_listing(ex["id"]))
+
     # Auto-parse raw text if fields are missing
     desc = payload.get("description", "")
     extracted = parse_raw_ad_text(desc)
@@ -501,4 +518,41 @@ async def api_delete_document(listing_id: int, doc_id: str) -> JSONResponse:
         raise HTTPException(status_code=404, detail="Document introuvable")
     updated = get_listing(listing_id)
     return JSONResponse({"deleted": True, "listing": updated})
+
+
+@app.post("/api/listings/{listing_id}/photos")
+async def api_upload_listing_photos(
+    listing_id: int,
+    files: list[UploadFile] = File(...),
+) -> JSONResponse:
+    import uuid
+
+    existing = get_listing(listing_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Annonce introuvable")
+
+    current_photos = list(existing.get("photos") or [])
+    dest_dir = UPLOADS_DIR / str(listing_id) / "photos"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    for f in files:
+        if not f.filename:
+            continue
+        safe_name = sanitize_filename(f.filename)
+        p_id = uuid.uuid4().hex[:6]
+        dest_file = dest_dir / f"{p_id}_{safe_name}"
+        content = await f.read()
+        dest_file.write_bytes(content)
+        current_photos.append(f"/api/listings/{listing_id}/photos/{dest_file.name}")
+
+    save_listing({"photos": current_photos}, listing_id=listing_id)
+    return JSONResponse(get_listing(listing_id))
+
+
+@app.get("/api/listings/{listing_id}/photos/{filename}")
+async def api_get_listing_photo(listing_id: int, filename: str) -> FileResponse:
+    file_path = UPLOADS_DIR / str(listing_id) / "photos" / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Photo introuvable")
+    return FileResponse(file_path)
 
