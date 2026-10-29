@@ -304,7 +304,6 @@ async def run_agy_deep_audit(
                 "nom": d.get("filename"),
                 "type": d.get("doc_type"),
                 "indices": d.get("detected_hints", {}),
-                "extrait": (d.get("extracted_text_full") or d.get("extracted_snippet") or "")[:4000],
             }
             for d in docs_list
         ],
@@ -379,25 +378,38 @@ async def run_agy_deep_audit(
         "}"
     )
 
+    import tempfile
+
+    prompt_file = None
     try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", delete=False) as tf:
+            tf.write(prompt)
+            prompt_file = Path(tf.name)
+
         proc = await asyncio.create_subprocess_exec(
             AGY_BIN,
             "--disable-slash-commands",
             "--output-format",
             "json",
-            f"--print={prompt}",
+            f"--print=@{prompt_file}",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=75.0)
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120.0)
         raw_out = stdout.decode("utf-8", errors="ignore").strip()
-        outer = json.loads(raw_out)
+        outer = json.loads(raw_out) if raw_out else {}
         resp_text = outer.get("response", "") if isinstance(outer, dict) else raw_out
         parsed = _extract_json(resp_text)
         if parsed and isinstance(parsed, dict) and "executive_summary" in parsed:
             parsed["engine"] = "Audit IA Approfondi (`agy` / Gemini Pro OAuth)"
             return parsed
-    except Exception:
-        pass
+        else:
+            err_msg = stderr.decode("utf-8", errors="ignore")
+            print(f"[run_agy_deep_audit] Warning: JSON extraction failed. Status: {outer.get('status')}. Stderr: {err_msg[:200]}", flush=True)
+    except Exception as e:
+        print(f"[run_agy_deep_audit] Error during agy execution: {e}", flush=True)
+    finally:
+        if prompt_file and prompt_file.exists():
+            prompt_file.unlink(missing_ok=True)
 
     return base_audit

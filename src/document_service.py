@@ -79,7 +79,8 @@ def classify_document_type(filename: str, text: str, user_given: str = "") -> st
         return "DPE complet"
 
     # 5. Factures Énergie
-    if any(k in fn for k in ("facture", "edf", "engie", "totalenergies")) or ("facture d'électricité" in txt or "fournisseur d'énergie" in txt):
+    if any(k in fn for k in ("facture", "edf", "engie", "totalenergies", "ekwateur", "sowee")) or \
+       any(k in txt for k in ("facture d'électricité", "fournisseur d'énergie", "facture d'énergie", "facture d’énergie", "votre facture d'énergie", "gaz naturel")):
         return "Facture Énergie"
 
     # 6. Devis travaux
@@ -142,7 +143,7 @@ def parse_document_hints(text: str, filename: str = "") -> dict[str, Any]:
         if ges_letter_m:
             hints["ges_letter"] = ges_letter_m.group(1).upper()
 
-    # 3. Energy bills (factures annuelles EDF / Engie / TotalEnergies)
+    # 3. Energy bills (factures annuelles ou mensuelles EDF / Engie / TotalEnergies / Ekwateur)
     energy_bill_m = re.search(r"(?:montant\s+annuel|facture\s+annuelle|total\s+ttc\s+annuel|consommation\s+estimée)[\s\:\=]+([0-9\s]{3,5})\s*(?:€|euros)", low)
     if energy_bill_m:
         try:
@@ -151,6 +152,22 @@ def parse_document_hints(text: str, filename: str = "") -> dict[str, Any]:
                 hints["facture_energie_an"] = val
         except Exception:
             pass
+
+    # Monthly energy bill detection (e.g. "Total TTC = 291,47 € TTC", "Montant à prélever ... 291,47 €")
+    monthly_m = re.search(r"(?:total\s+ttc|montant\s+[aà]\s+pr[eé]lever|net\s+[aà]\s+payer)[\s\:\=]+([0-9\s]{1,4}(?:,[0-9]{2})?)\s*€", low)
+    if monthly_m:
+        val_s = monthly_m.group(1).replace(" ", "").replace(",", ".")
+        try:
+            val_f = float(val_s)
+            if 20 <= val_f <= 1500:
+                hints["facture_mensuelle_ttc"] = round(val_f, 2)
+        except Exception:
+            pass
+
+    # Pellets / Granulés (e.g. "palette de 72 sacs de pellets pour 450.00 euros")
+    pellet_m = re.search(r"palette\s+de\s+(\d+)\s+sacs.*?(?:pellets|granul[eé]s).*?([0-9\s]{2,4}(?:[\.,][0-9]{2})?)\s*(?:€|euros)", low)
+    if pellet_m:
+        hints["granules_pellets"] = f"{pellet_m.group(2).strip()} € ({pellet_m.group(1)} sacs)"
 
     # 4. ERP Cadastre & Diagnostics
     # Pattern like "76540 000 EH 76"
@@ -383,21 +400,52 @@ def format_documents_for_audit_prompt(documents: list[dict[str, Any]]) -> str:
     if not documents:
         return ""
     lines = ["=== PIÈCES & DOCUMENTS OFFICIELS TRANSMIS PAR LE PROPRIÉTAIRE / VENDEUR ==="]
-    for d in documents:
+
+    # Group multiple energy bills to avoid blowing up prompt tokens
+    energy_bills = [d for d in documents if d.get("doc_type") == "Facture Énergie" and d.get("filename", "").lower().endswith(".pdf")]
+    other_docs = [d for d in documents if d not in energy_bills]
+
+    if len(energy_bills) >= 3:
+        # Grouped summary for monthly energy bills
+        monthly_amounts = []
+        for b in energy_bills:
+            h = b.get("detected_hints", {})
+            if h.get("facture_mensuelle_ttc"):
+                monthly_amounts.append(h["facture_mensuelle_ttc"])
+        avg_mo = round(sum(monthly_amounts) / len(monthly_amounts), 1) if monthly_amounts else 0
+        est_ann = round(avg_mo * 12) if avg_mo else 0
+        lines.append(
+            f"\n[SYNTHÈSE DE {len(energy_bills)} FACTURES D'ÉNERGIE FOURNIES (Fournisseur Ekwateur / Électricité + Gaz)]\n"
+            f"- Nombre de factures mensuelles transmises : {len(energy_bills)}\n"
+            + (f"- Montants mensuels constatés : min {min(monthly_amounts)} €, max {max(monthly_amounts)} €, moyenne {avg_mo} € TTC/mois\n" if monthly_amounts else "")
+            + (f"- Dépense d'énergie réelle constatée : environ {est_ann} € TTC/an (électricité + gaz naturel)\n" if est_ann else "")
+        )
+        # Include snippet of the highest winter bill and one standard bill
+        sorted_bills = sorted(energy_bills, key=lambda x: (x.get("detected_hints", {}).get("facture_mensuelle_ttc") or 0), reverse=True)
+        top_bill = sorted_bills[0]
+        t_text = top_bill.get("extracted_text_full") or top_bill.get("extracted_snippet") or ""
+        lines.append(f"Extrait représentatif (facture la plus élevée {top_bill.get('filename')}) :\n{t_text[:1500]}")
+    else:
+        other_docs.extend(energy_bills)
+
+    for d in other_docs:
         lines.append(f"\n[DOCUMENT: {d.get('filename')} | Type: {d.get('doc_type')} | Ajouté le {d.get('uploaded_at', '')[:10]}]")
         hints = d.get("detected_hints", {})
         if hints:
             lines.append(f"Chiffres détectés : {hints}")
         text = d.get("extracted_text_full") or d.get("extracted_snippet") or ""
         if text:
-            # Use smart diagnostic extraction if multi-page DDT, else full text sample
+            # Use smart diagnostic extraction if multi-page DDT, else text sample
             if len(text) > 8000 or "\x0c" in text:
                 cropped = smart_extract_diagnostic_sections(text).replace("\r\n", "\n")
             else:
-                cropped = text[:7000].replace("\r\n", "\n")
-            lines.append("EXTRAIT SYNTHÉTIQUE DU CONTENU DU DOCUMENT :")
+                cropped = text[:5000].replace("\r\n", "\n")
+            lines.append("EXTRAIT DU DOCUMENT :")
             lines.append(cropped)
         else:
             lines.append("(Aucun texte extrait - fichier binaire ou image)")
+
     lines.append("\n===========================================================================")
-    return "\n".join(lines)
+    full_str = "\n".join(lines)
+    # Global cap to 25,000 characters to keep agy inference fast and focused
+    return full_str[:25000]

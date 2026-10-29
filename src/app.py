@@ -217,8 +217,13 @@ async def _analyze_listing_pipeline(listing_id: int, run_deep_ai: bool = False) 
     temp_finance = compute_financials(merged_listing, enrichment, settings)
     temp_scoring = compute_scoring_and_dealbreakers(merged_listing, enrichment, temp_finance, settings)
 
+    current_audit = listing.get("ai_audit") or {}
+    has_deep_audit = (current_audit.get("engine") or "").startswith("Audit IA Approfondi")
+
     if run_deep_ai:
         ai_audit = await run_agy_deep_audit(merged_listing, enrichment, temp_finance, temp_scoring)
+    elif has_deep_audit:
+        ai_audit = dict(current_audit)
     else:
         ai_audit = build_heuristic_audit(merged_listing, enrichment, temp_finance, temp_scoring)
 
