@@ -272,34 +272,67 @@ def compute_scoring_and_dealbreakers(
 
     # --- 5. Quartier, Écoles & Commodités (0-100) ---
     s_neigh = 70
+    neighborhood = enrichment.get("neighborhood", {})
+    socio = neighborhood.get("socio", {})
+    education = neighborhood.get("education", {})
+    walkability = neighborhood.get("walkability_15min", {})
+
     poi_count = len(osm.get("supermarkets", [])) + len(osm.get("bakeries", [])) + len(osm.get("health", []))
     if poi_count >= 8:
-        s_neigh += 15
+        s_neigh += 10
         strengths.append("Quartier très commerçant (boulangeries, supermarchés et santé accessibles à pied)")
     elif poi_count >= 3:
-        s_neigh += 8
+        s_neigh += 5
     else:
-        s_neigh -= 8
+        s_neigh -= 6
 
-    avg_ips = schools.get("average_ips")
+    # Socio-economic prosperity from INSEE Filosofi
+    if socio.get("classe_prosperite") in ("Très favorisée", "Favorisée"):
+        s_neigh += 10
+        strengths.append(f"Commune/quartier très prospère ({socio.get('nom')}, revenu médian {socio.get('revenu_median_uc', 0):,} €/an, {socio.get('part_cadres_pct')}% de cadres)".replace(",", " "))
+    elif socio.get("classe_prosperite") in ("Zone prioritaire / Populaire", "Populaire"):
+        s_neigh -= 8
+        warnings.append(f"Secteur à plus forte mixité sociale/populaire ({socio.get('nom')}, taux de pauvreté communal {socio.get('taux_pauvrete_pct')}%)")
+
+    if socio.get("has_qpv") and socio.get("qpv_nom"):
+        warnings.append(f"Présence de quartier prioritaire (QPV) sur la commune : {socio.get('qpv_nom')} (vérifier l'éloignement exact)")
+
+    # Educational quality & IPS
+    avg_ips = education.get("summary", {}).get("average_ips") or schools.get("average_ips")
     if avg_ips:
         if avg_ips >= 115:
-            s_neigh += 12
-            strengths.append(f"Écoles du secteur très bien cotées (IPS moyen : {avg_ips})")
+            s_neigh += 10
+            strengths.append(f"Cadre éducatif de premier ordre (IPS moyen : {avg_ips} — très favorable à la réussite des enfants)")
+        elif avg_ips >= 103:
+            s_neigh += 5
+            strengths.append(f"Niveau des écoles favorable (IPS moyen : {avg_ips}, supérieur à la moyenne nationale)")
         elif avg_ips < 90:
-            s_neigh -= 8
-            warnings.append(f"Indice de Position Sociale (IPS) des écoles du secteur inférieur à la moyenne ({avg_ips})")
+            s_neigh -= 10
+            warnings.append(f"Indice de Position Sociale (IPS) des écoles inférieur à la moyenne ({avg_ips})")
 
     s_neigh = max(20, min(100, s_neigh))
 
-    # --- 6. Potentiel & Confort (Ensoleillement, PLU, Jardin) (0-100) ---
-    s_comfort = 75
+    # --- 6. Potentiel de Valorisation & Confort (0-100) ---
+    s_comfort = 70
+    appreciation = neighborhood.get("appreciation", {})
+    score_apprec = appreciation.get("score_appreciation")
+    if score_apprec:
+        s_comfort = round(s_comfort * 0.4 + score_apprec * 0.6)
+        if score_apprec >= 80:
+            strengths.append(f"Fort potentiel de valorisation patrimoniale ({appreciation.get('verdict')})")
+        elif score_apprec < 60:
+            warnings.append(f"Potentiel de prise de valeur plus mesuré ({appreciation.get('verdict')})")
+
+    # Urban projects catalysts (T5, Saint-Sever LNPN, etc.)
+    for cat in appreciation.get("catalysts", []):
+        strengths.append(f"Catalyseur métropolitain : {cat.get('projet')} ({cat.get('potentiel')})")
+
     if solar.get("available") and int(solar.get("yearly_irradiation_kwh_m2") or 0) >= 1150:
-        s_comfort += 10
+        s_comfort += 6
     if osm.get("parks_count", 0) >= 2:
-        s_comfort += 8
+        s_comfort += 5
     if int(finance.get("true_monthly_cost") or 0) <= 1150:
-        s_comfort += 7
+        s_comfort += 5
         strengths.append(f"Coût mensuel global maîtrisé ({finance.get('true_monthly_cost')} €/mois tout compris)")
     s_comfort = max(20, min(100, s_comfort))
 

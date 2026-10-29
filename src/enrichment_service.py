@@ -10,6 +10,12 @@ import httpx
 
 from src.dvf_service import analyze_dvf_around, haversine_m
 from src.mobility_service import compute_mobility
+from src.neighborhood_service import (
+    compute_15min_city_walkability,
+    evaluate_property_appreciation_potential,
+    fetch_complete_education_trajectory,
+    get_commune_socio_profile,
+)
 
 
 async def geocode_address(address: str, postcode: str = "", city: str = "") -> dict[str, Any]:
@@ -553,15 +559,17 @@ async def run_full_enrichment(listing_data: dict[str, Any], settings: dict[str, 
     georisques_task = fetch_georisques(lat, lon, citycode)
     dpe_task = fetch_ademe_dpe_for_address(address_input or geo_info.get("label", ""), postcode, surface_m2, dpe_letter)
     schools_task = fetch_schools_and_ips(lat, lon, city)
+    education_task = fetch_complete_education_trajectory(lat, lon, city)
     solar_task = fetch_solar_pvgis(lat, lon)
     osm_task = fetch_osm_amenities_and_noise(lat, lon)
     mobility_task = compute_mobility(lat, lon, settings)
 
-    cadastre, georisques, ademe_dpe, schools, solar, osm, mobility = await asyncio.gather(
+    cadastre, georisques, ademe_dpe, schools, education_data, solar, osm, mobility = await asyncio.gather(
         cadastre_task,
         georisques_task,
         dpe_task,
         schools_task,
+        education_task,
         solar_task,
         osm_task,
         mobility_task,
@@ -574,6 +582,25 @@ async def run_full_enrichment(listing_data: dict[str, Any], settings: dict[str, 
         price=price,
         surface_m2=surface_m2,
     )
+
+    land_m2 = float(listing_data.get("land_m2") or cadastre.get("contenance_m2") or 0)
+    appreciation_data = evaluate_property_appreciation_potential(
+        city=city or geo_info.get("city", "Rouen"),
+        listing_price=price,
+        surface_m2=surface_m2,
+        land_m2=land_m2,
+        dpe_letter=dpe_letter,
+        mobility=mobility,
+    )
+    walkability_data = compute_15min_city_walkability(osm)
+    socio_data = get_commune_socio_profile(city or geo_info.get("city", "Rouen"))
+
+    neighborhood = {
+        "socio": socio_data,
+        "education": education_data,
+        "appreciation": appreciation_data,
+        "walkability_15min": walkability_data,
+    }
 
     return {
         "geocoding": geo_info
@@ -594,4 +621,5 @@ async def run_full_enrichment(listing_data: dict[str, Any], settings: dict[str, 
         "schools": schools,
         "solar": solar,
         "osm": osm,
+        "neighborhood": neighborhood,
     }

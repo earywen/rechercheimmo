@@ -197,6 +197,11 @@ function renderDetail(item) {
   const fin = item.finance || {};
   const sco = item.scoring || {};
   const ai = item.ai_audit || {};
+  const neigh = enr.neighborhood || {};
+  const socio = neigh.socio || {};
+  const edu = neigh.education || {};
+  const apprec = neigh.appreciation || {};
+  const walk15 = neigh.walkability_15min || {};
 
   const dpeLetter = (item.dpe_letter || "?").toUpperCase();
   const axesHtml = Object.values(sco.axes || {})
@@ -292,6 +297,50 @@ function renderDetail(item) {
     )
     .join("");
 
+  const eduSummary = edu.summary || {};
+  const collegesRows = (edu.colleges || []).slice(0, 4).map((c) => {
+    const brv = c.brevet || {};
+    const brevetTxt = brv.taux_reussite ? `${brv.taux_reussite}% réussite (${brv.taux_mentions || 0}% mentions)` : "DNB n.c.";
+    return `
+      <tr>
+        <td><strong>${c.nom}</strong><br/><small style="color:var(--ink-muted)">${c.statut || "Public"} · ${c.commune || ""}</small></td>
+        <td><strong>${c.ips ? c.ips : "—"}</strong></td>
+        <td><span class="tag tag-ok">${brevetTxt}</span></td>
+        <td>${c.distance_m} m</td>
+      </tr>
+    `;
+  }).join("");
+
+  const schoolsRows = (edu.maternelles_and_elementaires || []).slice(0, 5).map((s) => `
+    <tr>
+      <td><strong>${s.nom}</strong><br/><small style="color:var(--ink-muted)">${s.statut || "Public"} · ${s.type || "École"}</small></td>
+      <td><strong>${s.ips ? s.ips : "—"}</strong> <small style="color:var(--ink-muted)">(${s.ips_label || ""})</small></td>
+      <td>${s.distance_m} m</td>
+    </tr>
+  `).join("");
+
+  const lyceesRows = (edu.lycees || []).slice(0, 3).map((l) => `
+    <tr>
+      <td><strong>${l.nom}</strong><br/><small style="color:var(--ink-muted)">${l.statut || "Public"} · ${l.commune || ""}</small></td>
+      <td><strong>${l.ips ? l.ips : "—"}</strong></td>
+      <td>${l.distance_m} m</td>
+    </tr>
+  `).join("");
+
+  const campusList = (edu.higher_education_campus || []).map((cp) => `
+    <li style="padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-size: 0.84rem;">
+      <strong>${cp.nom}</strong> <small style="color:var(--ink-muted)">(${cp.commune})</small><br/>
+      <span style="color:var(--ink-muted);">${cp.type} · Accès : ${cp.access_info}</span>
+    </li>
+  `).join("");
+
+  const catalystsHtml = (apprec.catalysts || []).map((cat) => `
+    <li style="padding: 0.45rem 0; border-bottom: 1px solid var(--border); font-size: 0.86rem;">
+      <strong>${cat.title} :</strong> ${cat.description}
+      <span class="tag tag-ok" style="margin-left:0.35rem;">${cat.impact}</span>
+    </li>
+  `).join("");
+
   const streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${item.lat},${item.lon}`;
   const geoportailUrl = `https://www.geoportail.gouv.fr/carte?c=${item.lon},${item.lat}&z=19&l0=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2::GEOPORTAIL:OGC:WMTS(1)&l1=CADASTRALPARCELS.PARCELLAIRE_EXPRESS::GEOPORTAIL:OGC:WMTS(1)&permalink=yes`;
   const offerTarget = ai.negotiation_strategy?.target_offer_eur || fin.recommended_offer_price;
@@ -366,7 +415,8 @@ function renderDetail(item) {
           <span class="tab-count">${dvf.count || 0} ventes</span>
         </button>
         <button type="button" role="tab" class="tab-btn" data-tab="tab-quartier" aria-selected="false" onclick="switchDossierTab('tab-quartier')">
-          3. Trajets &amp; Risques 76
+          3. Quartier, Écoles &amp; Cadre de Vie
+          <span class="tab-count">${eduSummary.total_count || 0} étab.</span>
         </button>
         <button type="button" role="tab" class="tab-btn" data-tab="tab-visite" aria-selected="false" onclick="switchDossierTab('tab-visite')">
           4. Visite &amp; Notes
@@ -389,7 +439,33 @@ function renderDetail(item) {
               ${ai.executive_summary || "Analyse disponible."}
             </p>
             <div style="display:flex; flex-direction:column; gap:0.55rem; margin-top:0.25rem;">
-              ${axesHtml}
+              ${
+                ai.neighborhood_verdict
+                  ? `<div class="verdict-callout">
+                      <strong>Quartier &amp; Sociologie (INSEE)</strong>
+                      <div>${ai.neighborhood_verdict}</div>
+                    </div>`
+                  : ""
+              }
+              ${
+                ai.education_verdict
+                  ? `<div class="verdict-callout">
+                      <strong>Écoles &amp; Réussite des Enfants</strong>
+                      <div>${ai.education_verdict}</div>
+                    </div>`
+                  : ""
+              }
+              ${
+                ai.appreciation_verdict
+                  ? `<div class="verdict-callout">
+                      <strong>Valorisation Patrimoniale &amp; Avenir</strong>
+                      <div>${ai.appreciation_verdict}</div>
+                    </div>`
+                  : ""
+              }
+              <div style="margin-top:0.35rem; display:flex; flex-direction:column; gap:0.55rem;">
+                ${axesHtml}
+              </div>
             </div>
           </div>
 
@@ -421,7 +497,7 @@ function renderDetail(item) {
 
       <!-- ONGLET 2 : BUDGET, DVF & TRAVAUX -->
       <section id="tab-budget" role="tabpanel" class="tab-panel">
-        <div class="editorial-grid">
+        <div class="editorial-grid three-col">
           <div class="editorial-section">
             <div class="section-header">
               <h3>Coût Mensuel Tout Compris</h3>
@@ -496,15 +572,162 @@ function renderDetail(item) {
               </table>
             </div>
           </div>
+
+          <div class="editorial-section span-2-laptop">
+            <div class="section-header">
+              <h3>Potentiel de Valorisation Patrimoniale</h3>
+              <span class="tag tag-ok">${apprec.score_appreciation || 65}/100</span>
+            </div>
+            <div class="notice-bar notice-green">
+              <div><strong>Verdict Avenir :</strong> ${apprec.verdict || "Bon potentiel de valorisation patrimoniale sur le secteur."}</div>
+            </div>
+
+            <table class="data-table">
+              <tbody>
+                <tr>
+                  <td><strong>Tendance DVF 5 ans (Commune)</strong></td>
+                  <td>
+                    <strong style="color:var(--ok-ink); font-size:1.05rem;">
+                      ${apprec.tendance_dvf_5ans_pct ? (apprec.tendance_dvf_5ans_pct > 0 ? "+" : "") + apprec.tendance_dvf_5ans_pct + "%" : "+8.5%"}
+                    </strong>
+                    <span style="font-size:0.8rem; color:var(--ink-muted);">sur 5 ans (${socio.nom || item.city})</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Réserve foncière cadastrale</strong></td>
+                  <td>
+                    <strong>Terrain de ${Math.round(item.land_m2 || cad.contenance_m2 || 0)} m²</strong> (Zone PLU ${cad.plu_zone || "Urbaine"})<br/>
+                    <small style="color:var(--ink-muted);">${apprec.land_reserve?.commentaire || "Parcelle adéquate pour extension ou piscine sous réserve du PLU."}</small>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Plus-value verte (Rénovation DPE)</strong></td>
+                  <td>
+                    <strong>DPE actuel ${dpeLetter}</strong><br/>
+                    <small style="color:var(--ink-muted);">${apprec.green_value?.commentaire || "Amélioration énergétique valorisante pour la revente."}</small>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="section-header" style="margin-top:0.4rem;">
+              <h3>Catalyseurs &amp; Projets Métropole Rouen</h3>
+              <span class="tag">Horizon 2025-2035</span>
+            </div>
+            <ul style="display:flex; flex-direction:column; gap:0.45rem; list-style:none;">
+              ${catalystsHtml || "<li style='font-size:0.86rem; color:var(--ink-muted);'>Aucun grand chantier structurant identifié directement sur la commune.</li>"}
+            </ul>
+          </div>
         </div>
       </section>
 
-      <!-- ONGLET 3 : TRAJETS, QUARTIER & RISQUES 76 -->
+      <!-- ONGLET 3 : QUARTIER, ÉCOLES & CADRE DE VIE -->
       <section id="tab-quartier" role="tabpanel" class="tab-panel">
-        <div class="editorial-grid">
+        <div class="editorial-grid three-col">
+          <!-- COLONNE 1 : SOCIOLOGIE INSEE & VILLE DU 1/4 D'HEURE -->
           <div class="editorial-section">
             <div class="section-header">
-              <h3>Mobilité du Couple (Astuce Rouen &amp; Madrillet)</h3>
+              <h3>Niveau de Vie &amp; Sociologie INSEE</h3>
+              <span class="tag tag-ok">${socio.classe_prosperite || "Intermédiaire"}</span>
+            </div>
+            <div class="kpi-grid-4">
+              <div class="kpi-stat">
+                <span class="kpi-stat-label">Revenu médian UC</span>
+                <span class="kpi-stat-value">${fmtEur(socio.revenu_median_uc || 22000)}/an</span>
+                <span class="kpi-stat-sub">Rouen : 23 100 € · Fr : 23 800 €</span>
+              </div>
+              <div class="kpi-stat">
+                <span class="kpi-stat-label">Taux de pauvreté</span>
+                <span class="kpi-stat-value" style="color:${(socio.taux_pauvrete_pct || 15) > 20 ? "var(--danger-ink)" : "var(--ok-ink)"};">${socio.taux_pauvrete_pct || 15}%</span>
+                <span class="kpi-stat-sub">France : 14.5%</span>
+              </div>
+              <div class="kpi-stat">
+                <span class="kpi-stat-label">Cadres &amp; CSP+</span>
+                <span class="kpi-stat-value">${socio.part_cadres_pct || 20}%</span>
+                <span class="kpi-stat-sub">${socio.part_proprietaires_pct || 55}% de propriétaires</span>
+              </div>
+              <div class="kpi-stat">
+                <span class="kpi-stat-label">Statut QPV</span>
+                <span class="kpi-stat-value" style="font-size:0.92rem; color:${socio.has_qpv ? "var(--warn-ink)" : "var(--ok-ink)"};">${socio.has_qpv ? (socio.qpv_nom || "Zone QPV") : "Hors QPV"}</span>
+                <span class="kpi-stat-sub">${socio.has_qpv ? "Quartier prioritaire proche" : "Quartier favorisé / sans QPV"}</span>
+              </div>
+            </div>
+
+            <p style="font-size:0.88rem; color:var(--ink); line-height:1.5;">
+              <strong>Diagnostic sociologique :</strong> ${socio.profil_socio || "Profil résidentiel standard de l'agglomération rouennaise."}
+            </p>
+            <p style="font-size:0.84rem; color:var(--ink-muted);">
+              <strong>Marché de plein air :</strong> ${socio.marche_plein_air || "Marché hebdomadaire en centre-ville"}<br/>
+              <strong>Atout cadre de vie :</strong> ${socio.atout_quartier || "Quartier résidentiel calme"}
+            </p>
+
+            <div class="section-header" style="margin-top:0.6rem;">
+              <h3>Vie Quotidienne &amp; 15 min à Pied</h3>
+              <span class="tag">${walk15.walk_score || 60}/100</span>
+            </div>
+            <div class="notice-bar notice-green">
+              <div><strong>Diagnostic piéton :</strong> ${walk15.verdict || "Commerces de proximité accessibles."}</div>
+            </div>
+            <div style="font-size:0.85rem; color:var(--ink); line-height:1.65;">
+              <p><strong>À 5 min à pied (&lt; 450 m) :</strong><br/>
+              ${(walk15.immediate_5min || []).join(" · ") || "<span style='color:var(--ink-muted);'>Aucun commerce de première nécessité sous 450 m</span>"}</p>
+              <p style="margin-top:0.35rem;"><strong>À 10 min à pied (&lt; 850 m) :</strong><br/>
+              ${(walk15.easy_10min || []).join(" · ") || "<span style='color:var(--ink-muted);'>Courses d'appoint uniquement</span>"}</p>
+              <p style="margin-top:0.35rem;"><strong>Nécessite voiture / vélo :</strong><br/>
+              <span style="color:var(--ink-muted);">${(walk15.car_needed || []).join(" · ") || "Tous commerces à proximité"}</span></p>
+            </div>
+          </div>
+
+          <!-- COLONNE 2 : PARCOURS ÉDUCATIF DE LA CRÈCHE AU SUPÉRIEUR -->
+          <div class="editorial-section">
+            <div class="section-header">
+              <h3>Parcours Scolaire (Crèche au Supérieur)</h3>
+              <span class="tag tag-ok">IPS moyen : ${eduSummary.average_ips || 100}</span>
+            </div>
+            <div class="notice-bar notice-green">
+              <div><strong>Cadre éducatif :</strong> ${eduSummary.ips_verdict || "Mixité sociale standard favorable aux apprentissages."}</div>
+            </div>
+
+            <div class="section-header" style="margin-top:0.4rem;">
+              <h4>Collèges de Rattachement (Brevet &amp; Mentions)</h4>
+              <span class="tag">${(edu.colleges || []).length} collèges</span>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Collège</th><th>IPS</th><th>Résultats DNB</th><th>Dist.</th></tr></thead>
+              <tbody>${collegesRows || "<tr><td colspan='4'>Aucun collège sous 3 km</td></tr>"}</tbody>
+            </table>
+
+            <div class="section-header" style="margin-top:0.4rem;">
+              <h4>Maternelles &amp; Élémentaires (&lt; 1,5 km)</h4>
+              <span class="tag">${(edu.maternelles_and_elementaires || []).length} écoles</span>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>École</th><th>IPS</th><th>Distance</th></tr></thead>
+              <tbody>${schoolsRows || "<tr><td colspan='3'>Aucune école sous 1,5 km</td></tr>"}</tbody>
+            </table>
+
+            <div class="section-header" style="margin-top:0.4rem;">
+              <h4>Lycées de Secteur</h4>
+              <span class="tag">${(edu.lycees || []).length} lycées</span>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Lycée</th><th>IPS</th><th>Distance</th></tr></thead>
+              <tbody>${lyceesRows || "<tr><td colspan='3'>Aucun lycée sous 4 km</td></tr>"}</tbody>
+            </table>
+
+            <div class="section-header" style="margin-top:0.4rem;">
+              <h4>Pôles Universitaires &amp; Grandes Écoles</h4>
+              <span class="tag">Métropole</span>
+            </div>
+            <ul style="display:flex; flex-direction:column; gap:0.25rem; list-style:none;">
+              ${campusList}
+            </ul>
+          </div>
+
+          <!-- COLONNE 3 : MOBILITÉ DU COUPLE & RISQUES 76 -->
+          <div class="editorial-section span-2-laptop">
+            <div class="section-header">
+              <h3>Mobilité du Couple (Astuce &amp; Voiture)</h3>
               <span class="tag ${mme.is_dealbreaker ? "tag-alert" : "tag-ok"}">${mme.status_label || ""}</span>
             </div>
             <div class="commute-row">
@@ -535,37 +758,7 @@ function renderDetail(item) {
               <p style="font-size:0.84rem; color:var(--ink-muted);">${mr.bridge_note || ""}</p>
             </div>
 
-            <div class="section-header" style="margin-top:0.5rem;">
-              <h3>Écoles (IPS) &amp; Commerces (&lt; 1 km)</h3>
-              <span class="tag">${osm.walkability_label || ""}</span>
-            </div>
-            <p style="font-size:0.84rem; color:var(--ink-muted);">
-              <strong>Supermarchés :</strong> ${(osm.supermarkets || []).slice(0, 3).map((s) => `${s.name} (${s.distance_m} m)`).join(", ") || "Aucun &lt; 1 km"}<br/>
-              <strong>Boulangeries :</strong> ${(osm.bakeries || []).slice(0, 3).map((s) => `${s.name} (${s.distance_m} m)`).join(", ") || "Aucune &lt; 1 km"}<br/>
-              <strong>Santé / Pharmacies :</strong> ${(osm.health || []).slice(0, 3).map((s) => `${s.name} (${s.distance_m} m)`).join(", ") || "Aucune &lt; 1 km"}
-            </p>
-            <table class="data-table">
-              <thead><tr><th>Établissement</th><th>Type</th><th>IPS</th><th>Distance</th></tr></thead>
-              <tbody>
-                ${(sch.schools || [])
-                  .slice(0, 5)
-                  .map(
-                    (s) => `
-                    <tr>
-                      <td>${s.nom}</td>
-                      <td>${s.type} (${s.statut})</td>
-                      <td><strong>${s.ips ? s.ips : "—"}</strong></td>
-                      <td>${s.distance_m} m</td>
-                    </tr>
-                  `
-                  )
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
-
-          <div class="editorial-section">
-            <div class="section-header">
+            <div class="section-header" style="margin-top:0.6rem;">
               <h3>Risques Naturels &amp; Marnières 76</h3>
               <span class="tag">Terrain ${Math.round(cad.contenance_m2 || item.land_m2 || 0)} m²</span>
             </div>

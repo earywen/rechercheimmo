@@ -115,6 +115,11 @@ def build_heuristic_audit(
     madame_min = mob.get("madame", {}).get("duration_min", "?")
     monsieur_min = mob.get("monsieur", {}).get("duration_min", "?")
 
+    neigh = enrichment.get("neighborhood", {})
+    socio = neigh.get("socio", {})
+    educ = neigh.get("education", {})
+    apprec = neigh.get("appreciation", {})
+
     return {
         "engine": "Synthèse Open Data + Règles Métier (Prêt pour Audit IA Approfondi `agy`)",
         "executive_summary": (
@@ -123,6 +128,9 @@ def build_heuristic_audit(
             f"Trajet Madame (Astuce vers 34 rue Cauchoise) : {madame_min} min. Trajet Monsieur (voiture vers Madrillet) : {monsieur_min} min. "
             f"Vrai coût mensuel tout compris estimé à {finance.get('true_monthly_cost', 0)} €/mois."
         ).replace(",", " "),
+        "neighborhood_verdict": f"{socio.get('classe_prosperite', 'Secteur résidentiel')} ({socio.get('nom', listing.get('city'))}) : revenu médian {socio.get('revenu_median_uc', 0):,} €/an, {socio.get('part_cadres_pct', 0)}% de cadres. {socio.get('profil_socio', '')}".replace(",", " "),
+        "education_verdict": f"{educ.get('summary', {}).get('ips_verdict', 'Offre scolaire locale diversifiée')} ({len(educ.get('maternelles_and_elementaires', []))} écoles, {len(educ.get('colleges', []))} collèges à proximité).",
+        "appreciation_verdict": f"{apprec.get('verdict', 'Valorisation stable')} (Tendance 5 ans : {apprec.get('tendance_dvf_5ans_pct', 0):+}%). {apprec.get('land_reserve', {}).get('commentaire', '')}",
         "ad_decryption": [
             "Vérifiez la concordance entre la surface annoncée et la surface habitable réelle du DPE ADEME.",
             f"Parcelle cadastrale identifiée : Section {cad.get('section', '?')} n°{cad.get('numero', '?')} ({cad.get('contenance_m2', '?')} m²), zone PLU {cad.get('plu_zone', 'U')}.",
@@ -194,6 +202,7 @@ async def run_agy_deep_audit(
             "ecoles": enrichment.get("schools", {}).get("schools", [])[:4],
             "solaire": enrichment.get("solar"),
             "commerces_et_bruit_osm": enrichment.get("osm"),
+            "quartier_et_valorisation": enrichment.get("neighborhood"),
         },
         "simulation_financiere": finance,
         "scoring": scoring,
@@ -204,11 +213,19 @@ async def run_agy_deep_audit(
         "Analyse ce bien immobilier pour un couple (budget ~250 000 €, apport 80 000 €, min 2 chambres, "
         "Madame travaille au 34 rue Cauchoise à Rouen en transport en commun Astuce max 45 min, "
         "Monsieur travaille chez GINGER BURGEAP au Madrillet à Saint-Étienne-du-Rouvray en voiture). "
+        "Sois particulièrement tranchant et direct sur :\n"
+        "- Le niveau de vie du quartier et sa sociologie (quartier aisé, populaire, ou en zone prioritaire QPV)\n"
+        "- La qualité des écoles et le cadre pour la réussite des enfants (IPS, niveau académique)\n"
+        "- Le potentiel de prise de valeur dans le temps (tendance DVF, grands projets comme le TEOR T5 / LNPN Saint-Sever, réserve foncière, valeur verte DPE)\n"
+        "- La praticité au quotidien (commerces, santé, ville du quart d'heure)\n"
         "N'utilise AUCUN outil externe : toutes les données Open Data ont déjà été collectées ci-dessous.\n\n"
         f"DONNÉES DU BIEN ET OPEN DATA :\n{json.dumps(context_payload, ensure_ascii=False)}\n\n"
         "Réponds UNIQUEMENT avec un objet JSON valide respectant exactement cette structure :\n"
         "{\n"
-        '  "executive_summary": "Synthèse franche et directe en 3-4 phrases sur l\'intérêt du bien pour le couple",\n'
+        '  "executive_summary": "Synthèse franche et directe en 3-4 phrases sur l\'intérêt du bien pour le couple, son cadre de vie et son potentiel",\n'
+        '  "neighborhood_verdict": "Avis expert tranché sur la commune/le quartier : niveau de vie (INSEE), sécurité patrimoniale, ambiance de vie",\n'
+        '  "education_verdict": "Avis sur les écoles de la crèche au lycée : cadre propice ou non à la réussite scolaire des enfants",\n'
+        '  "appreciation_verdict": "Le bien peut-il prendre de la valeur dans le temps et comment (projets métropole, travaux, terrain) ?",\n'
         '  "ad_decryption": ["Décryptage des sous-entendus de l\'annonce vs réalité Open Data (3 à 5 points)"],\n'
         '  "photo_observations": ["Observations sur l\'état apparent / points visuels à contrôler (2 à 4 points)"],\n'
         '  "works_breakdown": [\n'
