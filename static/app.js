@@ -311,7 +311,16 @@ function renderDetail(item) {
               const hints = doc.detected_hints || {};
               let hintsBadges = "";
               if (hints.taxe_fonciere) {
-                hintsBadges += `<span class="tag tag-ok">Taxe Foncière : ${hints.taxe_fonciere} €/an</span>`;
+                hintsBadges += `<span class="tag tag-ok">Taxe Foncière ${hints.annee ? `(${hints.annee}) ` : ""}: ${hints.taxe_fonciere} €/an</span>`;
+              }
+              if (hints.parcelle) {
+                hintsBadges += `<span class="tag tag-ok">Cadastre ERP : ${hints.parcelle}</span>`;
+              }
+              if (hints.amiante) {
+                hintsBadges += `<span class="tag tag-ok">${hints.amiante}</span>`;
+              }
+              if (hints.electricite) {
+                hintsBadges += `<span class="tag" style="background:var(--warn-bg); color:var(--warn-ink);">${hints.electricite}</span>`;
               }
               if (hints.dpe_letter) {
                 hintsBadges += `<span class="tag tag-ok">DPE extrait : ${hints.dpe_letter}${hints.dpe_kwh ? ` (${hints.dpe_kwh} kWh/m²/an)` : ""}</span>`;
@@ -498,7 +507,7 @@ function renderDetail(item) {
               <h3>Score 360° &amp; Synthèse IA</h3>
               <span class="tag">${(ai.engine || "").includes("agy") ? "Gemini Pro (agy)" : "Analyse IA"}</span>
             </div>
-            <p style="font-size:0.9rem; color:var(--ink);">
+            <p style="font-size:0.9rem; color:var(--ink); max-width:68ch; line-height:1.5;">
               ${ai.executive_summary || "Analyse disponible."}
             </p>
             <div style="display:flex; flex-direction:column; gap:0.55rem; margin-top:0.25rem;">
@@ -506,7 +515,7 @@ function renderDetail(item) {
                 ai.neighborhood_verdict
                   ? `<div class="verdict-callout">
                       <strong>Quartier &amp; Sociologie (INSEE)</strong>
-                      <div>${ai.neighborhood_verdict}</div>
+                      <div style="max-width:68ch; line-height:1.5;">${ai.neighborhood_verdict}</div>
                     </div>`
                   : ""
               }
@@ -514,7 +523,7 @@ function renderDetail(item) {
                 ai.education_verdict
                   ? `<div class="verdict-callout">
                       <strong>Écoles &amp; Réussite des Enfants</strong>
-                      <div>${ai.education_verdict}</div>
+                      <div style="max-width:68ch; line-height:1.5;">${ai.education_verdict}</div>
                     </div>`
                   : ""
               }
@@ -522,7 +531,7 @@ function renderDetail(item) {
                 ai.appreciation_verdict
                   ? `<div class="verdict-callout">
                       <strong>Valorisation Patrimoniale &amp; Avenir</strong>
-                      <div>${ai.appreciation_verdict}</div>
+                      <div style="max-width:68ch; line-height:1.5;">${ai.appreciation_verdict}</div>
                     </div>`
                   : ""
               }
@@ -551,7 +560,7 @@ function renderDetail(item) {
               <h3>Décryptage de l'Annonce vs Open Data</h3>
               <span class="tag">Vérification auto</span>
             </div>
-            <ul style="display:flex; flex-direction:column; gap:0.65rem; padding-left:1.2rem; font-size:0.88rem; color:var(--ink);">
+            <ul style="display:flex; flex-direction:column; gap:0.65rem; padding-left:1.2rem; font-size:0.88rem; color:var(--ink); max-width:70ch;">
               ${(ai.ad_decryption || []).map((pt) => `<li>${pt}</li>`).join("")}
             </ul>
           </div>
@@ -921,28 +930,15 @@ function renderDetail(item) {
               <h3>Pièces &amp; Documents Officiels</h3>
               <span class="tag tag-ok">Ingéré par l'IA</span>
             </div>
-            <p style="font-size:0.86rem; color:var(--ink-muted); margin-bottom:0.75rem;">
+            <p style="font-size:0.86rem; color:var(--ink-muted); margin-bottom:0.75rem; max-width:68ch;">
               Déposez les pièces fournies par le propriétaire ou l'agence (DPE officiel, taxe foncière, factures d'énergie, diagnostics amiante/élec, devis). Le texte est automatiquement extrait et injecté dans l'audit IA (Gemini Pro) pour confronter l'annonce et recalculer vos mensualités réelles.
             </p>
 
             <div class="dropzone-container">
-              <div style="display:flex; gap:0.5rem; align-items:center;">
-                <label for="docTypeSelect" style="font-size:0.82rem; font-weight:600; white-space:nowrap; color:var(--ink);">Type de pièce :</label>
-                <select id="docTypeSelect" style="flex:1; padding:0.4rem 0.5rem; font-size:0.84rem; background:var(--bg); border:1px solid var(--border-strong); border-radius:6px; color:var(--ink);">
-                  <option value="DPE">DPE complet (Diagnostic Performance Énergétique)</option>
-                  <option value="Taxe Foncière">Avis de Taxe Foncière (Imposition)</option>
-                  <option value="Facture Énergie">Facture d'Énergie annuelle (EDF / Engie)</option>
-                  <option value="Diagnostics">Diagnostics Techniques (Amiante / Élec / Plomb)</option>
-                  <option value="Devis / Travaux">Devis d'Artisans ou Travaux réalisés</option>
-                  <option value="PV AG / Copro">PV d'Assemblée Générale / Copropriété</option>
-                  <option value="Autre" selected>Autre justificatif</option>
-                </select>
-              </div>
-
               <div class="dropzone-box" id="documentDropzone" onclick="document.getElementById('docFileInput').click()">
                 <span class="dropzone-icon">📄</span>
                 <div class="dropzone-prompt">Glissez-déposez une pièce ici ou cliquez pour parcourir</div>
-                <div class="dropzone-hint">PDF, TXT, images (jusqu'à 25 Mo) · Extraction automatique de texte</div>
+                <div class="dropzone-hint">Classement 100% automatique par l'IA (Avis de Taxe Foncière, DPE, Factures, ERP, DDT...) · PDF, images, TXT</div>
                 <input type="file" id="docFileInput" style="display:none;" onchange="onDocumentFileSelected(${item.id}, this.files)" />
               </div>
             </div>
@@ -1141,9 +1137,7 @@ async function removeListing(id) {
 async function onDocumentFileSelected(listingId, files) {
   if (!files || files.length === 0) return;
   const file = files[0];
-  const typeSelect = document.getElementById("docTypeSelect");
-  const docType = typeSelect ? typeSelect.value : "Autre";
-  await uploadDocumentFile(listingId, file, docType);
+  await uploadDocumentFile(listingId, file, "Auto");
 }
 
 async function uploadDocumentFile(listingId, file, docType) {

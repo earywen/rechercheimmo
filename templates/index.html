@@ -11,7 +11,7 @@
   </script>
   <title>Recherche Immo — Rouen Métropole</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/style.css?v=2.5" />
+  <link rel="stylesheet" href="/static/style.css?v=2.7" />
 </head>
 <body>
   <header class="topbar">
@@ -85,7 +85,7 @@
       </div>
 
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="f_desc">Texte de l'annonce (la surface, les chambres et le DPE en seront extraits automatiquement)</label>
+        <label for="f_desc" style="max-width: 65ch;">Texte de l'annonce (surface, chambres et DPE auto-extraits)</label>
         <textarea id="f_desc" name="description" rows="4" placeholder="Collez ici la description de l'annonce..."></textarea>
       </div>
 
@@ -162,8 +162,8 @@
       <h2 id="detectiveDialogTitle">Détective DPE — Retrouver une adresse masquée</h2>
       <button class="btn btn-sm" data-close-dialog="detectiveDialog">Fermer</button>
     </div>
-    <p style="font-size: 0.88rem; color: var(--ink-muted); margin-bottom: 1rem;">
-      Croisez le code postal, la surface et le DPE d'une annonce pour identifier l'adresse exacte dans la base nationale ADEME.
+    <p style="font-size: 0.88rem; color: var(--ink-muted); margin-bottom: 1rem; max-width: 65ch;">
+      Croisez le code postal, la surface et le DPE pour identifier l'adresse exacte dans la base nationale ADEME.
     </p>
     <form id="detectiveForm" class="form-grid">
       <div class="form-group">
@@ -265,6 +265,6 @@
   </dialog>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/static/app.js?v=2.5"></script>
+  <script src="/static/app.js?v=2.7"></script>
 </body>
 </html>

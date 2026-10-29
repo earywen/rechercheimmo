@@ -28,6 +28,7 @@ from src.db import (
 from src.document_service import (
     get_document_file,
     remove_document,
+    reprocess_listing_documents,
     save_uploaded_document,
 )
 from src.dvf_service import ensure_dvf_index
@@ -350,7 +351,7 @@ async def api_detective_dpe(payload: dict[str, Any]) -> JSONResponse:
 async def api_upload_document(
     listing_id: int,
     file: UploadFile = File(...),
-    doc_type: str = Form("Autre"),
+    doc_type: str = Form("Auto"),
 ) -> JSONResponse:
     existing = get_listing(listing_id)
     if not existing:
@@ -384,6 +385,28 @@ async def api_upload_document(
     )
     final_listing = get_listing(listing_id)
     return JSONResponse({"success": True, "document": doc_meta, "listing": final_listing})
+
+
+@app.post("/api/listings/{listing_id}/documents/reprocess")
+async def api_reprocess_documents(listing_id: int) -> JSONResponse:
+    updated = reprocess_listing_documents(listing_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Annonce introuvable")
+    settings = get_settings()
+    fin = compute_financials(updated, updated.get("enrichment", {}), settings)
+    sco = compute_scoring_and_dealbreakers(updated, updated.get("enrichment", {}), fin, settings)
+    save_listing(
+        {
+            "finance": fin,
+            "scoring": sco,
+            "score_total": sco["total_score"],
+            "dealbreakers_count": len(sco["dealbreakers"]),
+            "true_monthly_cost": fin["true_monthly_cost"],
+        },
+        listing_id=listing_id,
+    )
+    final_listing = get_listing(listing_id)
+    return JSONResponse({"success": True, "listing": final_listing})
 
 
 @app.get("/api/listings/{listing_id}/documents/{doc_id}/download")
