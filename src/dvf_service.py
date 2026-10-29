@@ -206,12 +206,33 @@ def analyze_dvf_around(
     q25_m2 = round(prices_m2[max(0, int(len(prices_m2) * 0.25))])
     q75_m2 = round(prices_m2[min(len(prices_m2) - 1, int(len(prices_m2) * 0.75))])
 
-    # Street-level sales (< 200m)
+    # Street-level sales (< 220m)
     street_sales = [x for x in sample if x["distance_m"] <= 220]
     street_median_m2 = round(statistics.median([x["prix_m2"] for x in street_sales])) if len(street_sales) >= 2 else None
 
     listing_price_m2 = round(price / surface_m2) if (price > 0 and surface_m2 > 0) else 0
     diff_pct = round(((listing_price_m2 - median_m2) / median_m2) * 100, 1) if (listing_price_m2 and median_m2) else 0
+    street_diff_pct = round(((listing_price_m2 - street_median_m2) / street_median_m2) * 100, 1) if (listing_price_m2 and street_median_m2) else None
+
+    # Commune-wide benchmark (e.g. all of Rouen or Maromme, like MoteurImmo / MeilleursAgents)
+    commune_name = sample[0].get("nom_commune") if sample else None
+    commune_median_m2 = None
+    commune_diff_pct = None
+    if commune_name:
+        try:
+            conn = sqlite3.connect(str(DVF_DB_PATH))
+            c_rows = conn.execute(
+                "SELECT prix_m2 FROM mutations WHERE UPPER(nom_commune) = ?",
+                (commune_name.upper(),),
+            ).fetchall()
+            conn.close()
+            c_prices = [r[0] for r in c_rows if r[0] > 0]
+            if c_prices:
+                commune_median_m2 = round(statistics.median(c_prices))
+                if listing_price_m2 and commune_median_m2:
+                    commune_diff_pct = round(((listing_price_m2 - commune_median_m2) / commune_median_m2) * 100, 1)
+        except Exception:
+            pass
 
     estimated_fair_price = round(median_m2 * surface_m2, -2) if surface_m2 > 0 else 0
     estimated_low_price = round(q25_m2 * surface_m2, -2) if surface_m2 > 0 else 0
@@ -240,6 +261,10 @@ def analyze_dvf_around(
         "q25_price_m2": q25_m2,
         "q75_price_m2": q75_m2,
         "street_median_m2": street_median_m2,
+        "street_diff_pct": street_diff_pct,
+        "commune_name": commune_name,
+        "commune_median_m2": commune_median_m2,
+        "commune_diff_pct": commune_diff_pct,
         "listing_price_m2": listing_price_m2,
         "diff_vs_median_pct": diff_pct,
         "verdict": verdict,

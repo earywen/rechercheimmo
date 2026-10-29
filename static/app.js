@@ -627,13 +627,33 @@ function renderDetail(item) {
             </div>
 
             <div class="section-header" style="margin-top:0.5rem;">
-              <h3>Ventes Notariées DVF (Secteur)</h3>
+              <h3>Ventes Notariées DVF (Secteur &amp; Ville)</h3>
               <span class="tag">${dvf.count || 0} actes (${dvf.verdict || ""})</span>
             </div>
-            <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
-              <span>Bas (Q25) : <strong>${fmtEur(dvf.q25_price_m2)}/m²</strong></span>
-              <span>Médiane DVF : <strong style="color:var(--accent);">${fmtEur(dvf.median_price_m2)}/m²</strong></span>
-              <span>Haut (Q75) : <strong>${fmtEur(dvf.q75_price_m2)}/m²</strong></span>
+            <div style="display:flex; flex-direction:column; gap:0.4rem; padding:0.5rem 0; border-bottom:1px solid var(--border); font-size:0.83rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span>🎯 <strong>Micromarché Quartier (${dvf.radius_used_m || 800}m) :</strong></span>
+                <span><strong>${fmtEur(dvf.median_price_m2)}/m²</strong> <span class="tag ${dvf.diff_vs_median_pct > 10 ? 'tag-alert' : 'tag-ok'}" style="font-size:0.75rem;">${dvf.diff_vs_median_pct > 0 ? '+' : ''}${dvf.diff_vs_median_pct}%</span></span>
+              </div>
+              ${
+                dvf.street_median_m2
+                  ? `<div style="display:flex; justify-content:space-between; align-items:center;">
+                      <span>📍 <strong>Voie &amp; Rues proches (&lt;220m) :</strong></span>
+                      <span><strong>${fmtEur(dvf.street_median_m2)}/m²</strong> <span class="tag" style="font-size:0.75rem;">${(dvf.street_diff_pct || 0) > 0 ? "+" : ""}${dvf.street_diff_pct || 0}%</span></span>
+                    </div>`
+                  : ""
+              }
+              ${
+                dvf.commune_median_m2
+                  ? `<div style="display:flex; justify-content:space-between; align-items:center; color:var(--ink-muted);">
+                      <span>🏙️ <strong>Moyenne Ville de ${dvf.commune_name || "Rouen"} (MoteurImmo) :</strong></span>
+                      <span><strong>${fmtEur(dvf.commune_median_m2)}/m²</strong> <span class="tag" style="font-size:0.75rem;">${(dvf.commune_diff_pct || 0) > 0 ? "+" : ""}${dvf.commune_diff_pct || 0}%</span></span>
+                    </div>`
+                  : ""
+              }
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:0.35rem 0; font-size:0.8rem; color:var(--ink-muted);">
+              <span>Fourchette DVF quartier : ${fmtEur(dvf.q25_price_m2)} (Q25) – ${fmtEur(dvf.q75_price_m2)}/m² (Q75)</span>
             </div>
             <div style="max-height:280px; overflow-y:auto;">
               <table class="data-table">
