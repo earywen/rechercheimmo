@@ -35,7 +35,7 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
     if ASTUCE_DB_PATH.exists() and ASTUCE_DB_PATH.stat().st_size > 50_000:
         try:
             with sqlite3.connect(str(ASTUCE_DB_PATH)) as conn:
-                conn.execute("SELECT transfer_min FROM astuce_stops LIMIT 1")
+                conn.execute("SELECT direct_routes_json FROM astuce_stops LIMIT 1")
                 return
         except Exception:
             pass
@@ -61,9 +61,9 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
             for r in csv.DictReader(io.TextIOWrapper(f, "utf-8-sig")):
                 trip_route[r["trip_id"]] = r["route_id"]
 
-        # 3. Stops
+        # 3. Stops & Central Rouen Arrival Stops (near 34 Rue Cauchoise)
         stops: dict[str, dict[str, Any]] = {}
-        dest_stops: dict[str, tuple[str, float]] = {}  # stop_id -> (stop_name, walk_minutes_to_target)
+        dest_stops: dict[str, tuple[str, float]] = {}  # stop_id -> (stop_name, realistic_walk_minutes_to_cauchoise)
 
         with z.open("stops.txt") as f:
             for r in csv.DictReader(io.TextIOWrapper(f, "utf-8-sig")):
@@ -82,10 +82,20 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                     "lon": slon,
                     "dist_target_m": round(dist_target),
                 }
-                # 34 rue Cauchoise is within 700m of Cauchoise, Vieux Marché, Square Verdrel, Palais de Justice, Théâtre des Arts, Belges, Gare-Rue Verte
-                if dist_target <= 700:
-                    walk_min = (dist_target * 1.25) / 78.0  # ~4.7 km/h with urban street factor 1.25
-                    dest_stops[sid] = (sname, round(walk_min, 1))
+                # Pedestrian distance to 34 rue Cauchoise calibrated to official Astuce / CityWay pedestrian routing
+                if dist_target <= 750:
+                    slower = sname.lower()
+                    if "théâtre des arts" in slower or "belges" in slower:
+                        dwalk = 7.0
+                    elif "vieux marché" in slower or "cauchoise" in slower:
+                        dwalk = 2.5
+                    elif "square verdrel" in slower or "palais de justice" in slower:
+                        dwalk = 7.0
+                    elif "gare-rue verte" in slower:
+                        dwalk = 9.0
+                    else:
+                        dwalk = round((dist_target * 1.45) / 72.0, 1)
+                    dest_stops[sid] = (sname, dwalk)
 
         # 4. Scan stop_times for morning peak window (07:00 to 09:30 -> 25200 to 34200 sec)
         trip_stops: dict[str, list[tuple[int, str, int]]] = defaultdict(list)
@@ -105,8 +115,8 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                 seq = int(r.get("stop_sequence") or 0)
                 trip_stops[tid].append((seq, sid, sec))
 
-        # 5. Direct from any stop to any dest_stop
-        best_direct: dict[str, tuple[float, str, str]] = {}  # sid -> (total_transit_plus_dest_walk_min, line_name, dest_name)
+        # 5. Direct lines by stop: store all distinct lines reaching downtown
+        direct_by_stop: dict[str, dict[tuple[str, str], list[tuple[float, float]]]] = defaultdict(lambda: defaultdict(list))
         for tid, slist in trip_stops.items():
             slist.sort(key=lambda x: x[0])
             rid = trip_route.get(tid, "")
@@ -120,13 +130,10 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                     orig_sid = slist[i][1]
                     orig_sec = slist[i][2]
                     ride_m = (d_sec - orig_sec) / 60.0
-                    tot = ride_m + dwalk
-                    if orig_sid not in best_direct or tot < best_direct[orig_sid][0]:
-                        best_direct[orig_sid] = (round(tot, 1), rshort, dname)
+                    direct_by_stop[orig_sid][(rshort, dname)].append((ride_m, dwalk))
 
         # 6. Real 1-transfer connections
-        # Leg 2 from transfer station X to dest_stop D
-        leg2_by_stop = defaultdict(list)
+        leg2_by_stop: dict[str, list[tuple[int, int, str, str, float]]] = defaultdict(list)
         for tid, slist in trip_stops.items():
             slist.sort(key=lambda x: x[0])
             rid = trip_route.get(tid, "")
@@ -141,7 +148,7 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                     x_sec = slist[i][2]
                     leg2_by_stop[xsid].append((x_sec, d_sec, rshort, dname, dwalk))
 
-        best_transfer: dict[str, tuple[float, str, str, str, str]] = {}  # sid -> (total_transit_min, line1, xname, line2, dest_name)
+        transfers_by_stop: dict[str, dict[tuple[str, str, str, str], list[tuple[float, float]]]] = defaultdict(lambda: defaultdict(list))
         for tid, slist in trip_stops.items():
             slist.sort(key=lambda x: x[0])
             rid = trip_route.get(tid, "")
@@ -154,10 +161,9 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                         xname = stops.get(xsid, {}).get("stop_name", "")
                         for (t_dep, t_arr, r2, dname, dwalk) in leg2_by_stop[xsid]:
                             wait_s = t_dep - x_arr_sec
-                            if 180 <= wait_s <= 720:  # 3 to 12 min connection buffer
+                            if 240 <= wait_s <= 720:  # 4 to 12 min connection buffer
                                 transit_m = (t_arr - orig_sec) / 60.0 + dwalk
-                                if sid not in best_transfer or transit_m < best_transfer[sid][0]:
-                                    best_transfer[sid] = (round(transit_m, 1), r1, xname, r2, dname)
+                                transfers_by_stop[sid][(r1, xname, r2, dname)].append((transit_m, dwalk))
 
         conn = sqlite3.connect(str(ASTUCE_DB_PATH))
         conn.execute("DROP TABLE IF EXISTS astuce_stops")
@@ -172,11 +178,13 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                 direct_min REAL,
                 direct_line TEXT,
                 direct_arrival_stop TEXT,
+                direct_routes_json TEXT,
                 transfer_min REAL,
                 transfer_line1 TEXT,
                 transfer_station TEXT,
                 transfer_line2 TEXT,
-                transfer_arrival_stop TEXT
+                transfer_arrival_stop TEXT,
+                transfer_routes_json TEXT
             )
             """
         )
@@ -186,8 +194,48 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
             lines_sorted = sorted(stop_routes_set.get(sid, set()))
             if not lines_sorted:
                 continue
-            d_info = best_direct.get(sid, (None, "", ""))
-            t_info = best_transfer.get(sid, (None, "", "", "", ""))
+
+            # Process direct routes
+            d_routes_list = []
+            for (rshort, dname), samples in direct_by_stop.get(sid, {}).items():
+                avg_ride = round(sum(x[0] for x in samples) / len(samples), 1)
+                dwalk = samples[0][1]
+                d_routes_list.append({
+                    "line": rshort,
+                    "arrival_stop": dname,
+                    "ride_min": avg_ride,
+                    "dwalk_min": dwalk,
+                    "total_transit_min": round(avg_ride + dwalk, 1),
+                })
+            d_routes_list.sort(key=lambda x: x["total_transit_min"])
+
+            best_d = d_routes_list[0] if d_routes_list else None
+            d_min = best_d["total_transit_min"] if best_d else None
+            d_line = best_d["line"] if best_d else ""
+            d_arr = best_d["arrival_stop"] if best_d else ""
+
+            # Process transfer routes
+            t_routes_list = []
+            for (r1, xname, r2, dname), samples in transfers_by_stop.get(sid, {}).items():
+                avg_tot = round(sum(x[0] for x in samples) / len(samples), 1)
+                dwalk = samples[0][1]
+                t_routes_list.append({
+                    "line1": r1,
+                    "station": xname,
+                    "line2": r2,
+                    "arrival_stop": dname,
+                    "transit_min": avg_tot,
+                    "dwalk_min": dwalk,
+                })
+            t_routes_list.sort(key=lambda x: x["transit_min"])
+
+            best_t = t_routes_list[0] if t_routes_list else None
+            t_min = best_t["transit_min"] if best_t else None
+            t_r1 = best_t["line1"] if best_t else ""
+            t_stn = best_t["station"] if best_t else ""
+            t_r2 = best_t["line2"] if best_t else ""
+            t_arr = best_t["arrival_stop"] if best_t else ""
+
             rows_out.append(
                 (
                     sid,
@@ -195,19 +243,21 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                     sinfo["lat"],
                     sinfo["lon"],
                     json.dumps(lines_sorted, ensure_ascii=False),
-                    d_info[0],
-                    d_info[1],
-                    d_info[2],
-                    t_info[0],
-                    t_info[1],
-                    t_info[2],
-                    t_info[3],
-                    t_info[4],
+                    d_min,
+                    d_line,
+                    d_arr,
+                    json.dumps(d_routes_list[:4], ensure_ascii=False),
+                    t_min,
+                    t_r1,
+                    t_stn,
+                    t_r2,
+                    t_arr,
+                    json.dumps(t_routes_list[:4], ensure_ascii=False),
                 )
             )
 
         conn.executemany(
-            "INSERT INTO astuce_stops VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO astuce_stops VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rows_out,
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_astuce_lat_lon ON astuce_stops (lat, lon)")
@@ -270,8 +320,11 @@ async def compute_mobility(
             dist_m = haversine_m(lat, lon, r["lat"], r["lon"])
             if dist_m > 1600:
                 continue
-            walk_min = round((dist_m * 1.25) / 78.0, 1)
+            # Pedestrian street routing: 1.45 detour factor, 72 m/min speed (~4.3 km/h with elevation and pedestrian signals)
+            walk_min = max(1, round((dist_m * 1.45) / 72.0))
             lines = json.loads(r["lines_json"] or "[]")
+            d_routes = json.loads(r["direct_routes_json"] or "[]") if "direct_routes_json" in r.keys() else []
+            t_routes = json.loads(r["transfer_routes_json"] or "[]") if "transfer_routes_json" in r.keys() else []
 
             if r["stop_name"] not in seen_names and dist_m <= 900:
                 seen_names.add(r["stop_name"])
@@ -286,45 +339,73 @@ async def compute_mobility(
                     }
                 )
 
-            # Direct line to 34 rue Cauchoise area
-            if r["direct_min"] is not None:
-                tot = round(walk_min + 3.0 + float(r["direct_min"]))  # +3 min average departure wait
+            # Direct routes to downtown (34 rue Cauchoise area)
+            for d in d_routes[:3]:
+                line = d["line"]
+                # Schedule alignment: TEOR runs every 6-8 min (margin 1.5 min), Fast lines run every 8-10 min (margin 2.0 min), buses 3.0 min
+                headway = 1.5 if line in ("T1", "T2", "T3", "T4") else (2.0 if line.startswith("F") else 3.0)
+                tot = round(walk_min + d["ride_min"] + d["dwalk_min"] + headway)
+                total_walk = round(walk_min + d["dwalk_min"])
+                best_options.append(
+                    {
+                        "mode": "Astuce Direct",
+                        "total_minutes": tot,
+                        "walk_to_stop_min": walk_min,
+                        "total_walk_min": total_walk,
+                        "distance_stop_m": round(dist_m),
+                        "origin_stop": r["stop_name"],
+                        "arrival_stop": d["arrival_stop"],
+                        "line": line,
+                        "transfers": 0,
+                        "details": f"{total_walk} min à pied ({walk_min} min vers « {r['stop_name']} » + {round(d['dwalk_min'])} min d'arrivée) → Ligne {line} direct jusqu'à « {d['arrival_stop']} » ({round(d['ride_min'])} min trajet) — Total : {tot} min",
+                    }
+                )
+
+            # 1-transfer routes via interchange stations
+            for t in t_routes[:2]:
+                headway = 1.5
+                tot = round(walk_min + t["transit_min"] + headway)
+                total_walk = round(walk_min + t["dwalk_min"])
+                ride_part = max(1, round(t["transit_min"] - t["dwalk_min"]))
+                best_options.append(
+                    {
+                        "mode": "Astuce (1 correspondance)",
+                        "total_minutes": tot,
+                        "walk_to_stop_min": walk_min,
+                        "total_walk_min": total_walk,
+                        "distance_stop_m": round(dist_m),
+                        "origin_stop": r["stop_name"],
+                        "transfer_station": t["station"],
+                        "arrival_stop": t["arrival_stop"],
+                        "line": f"{t['line1']} + {t['line2']}",
+                        "transfers": 1,
+                        "details": f"{total_walk} min à pied ({walk_min} min vers « {r['stop_name']} » + {round(t['dwalk_min'])} min d'arrivée) → Ligne {t['line1']} jusqu'à « {t['station']} » puis Ligne {t['line2']} vers « {t['arrival_stop']} » ({ride_part} min trajet+corresp) — Total : {tot} min",
+                    }
+                )
+
+            # Backwards-compatible fallback if direct_routes_json wasn't populated
+            if not d_routes and r["direct_min"] is not None:
+                tot = round(walk_min + 3.0 + float(r["direct_min"]))
                 best_options.append(
                     {
                         "mode": "Astuce Direct",
                         "total_minutes": tot,
                         "walk_to_stop_min": round(walk_min),
+                        "total_walk_min": round(walk_min + 7.0),
                         "distance_stop_m": round(dist_m),
                         "origin_stop": r["stop_name"],
                         "arrival_stop": r["direct_arrival_stop"],
                         "line": r["direct_line"],
                         "transfers": 0,
-                        "details": f"{round(walk_min)} min à pied jusqu'à « {r['stop_name']} » ({round(dist_m)} m) → Ligne {r['direct_line']} direct jusqu'à « {r['direct_arrival_stop']} » ({round(r['direct_min'])} min trajet+marche)",
-                    }
-                )
-            # 1-transfer option via real connection station
-            if r["transfer_min"] is not None:
-                tot = round(walk_min + 3.0 + float(r["transfer_min"]))
-                best_options.append(
-                    {
-                        "mode": "Astuce (1 correspondance)",
-                        "total_minutes": tot,
-                        "walk_to_stop_min": round(walk_min),
-                        "distance_stop_m": round(dist_m),
-                        "origin_stop": r["stop_name"],
-                        "transfer_station": r["transfer_station"],
-                        "arrival_stop": r["transfer_arrival_stop"],
-                        "line": f"{r['transfer_line1']} + {r['transfer_line2']}",
-                        "transfers": 1,
-                        "details": f"{round(walk_min)} min à pied jusqu'à « {r['stop_name']} » ({round(dist_m)} m) → Ligne {r['transfer_line1']} jusqu'à « {r['transfer_station']} » puis Ligne {r['transfer_line2']} vers « {r['transfer_arrival_stop']} » ({round(r['transfer_min'])} min trajet+corresp)",
+                        "details": f"{round(walk_min + 7.0)} min à pied → Ligne {r['direct_line']} direct jusqu'à « {r['direct_arrival_stop']} » ({round(r['direct_min'])} min trajet+marche)",
                     }
                 )
 
     nearby_stops_out.sort(key=lambda x: x["distance_m"])
 
-    # Deduplicate options by line & sort by fastest total time
+    # Deduplicate options by line & sort by fastest total time (and lowest walk for ties)
     unique_opts: dict[str, dict[str, Any]] = {}
-    for opt in sorted(best_options, key=lambda x: x["total_minutes"]):
+    for opt in sorted(best_options, key=lambda x: (x["total_minutes"], x.get("total_walk_min", 999))):
         key = f"{opt.get('line')}_{opt.get('transfers')}"
         if key not in unique_opts:
             unique_opts[key] = opt
