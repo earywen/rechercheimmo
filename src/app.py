@@ -9,9 +9,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.ai_service import build_heuristic_audit, run_agy_deep_audit
@@ -24,6 +24,11 @@ from src.db import (
     list_listings,
     save_listing,
     update_settings,
+)
+from src.document_service import (
+    get_document_file,
+    remove_document,
+    save_uploaded_document,
 )
 from src.dvf_service import ensure_dvf_index
 from src.enrichment_service import (
@@ -339,3 +344,66 @@ async def api_detective_dpe(payload: dict[str, Any]) -> JSONResponse:
         property_type=str(payload.get("property_type") or "Maison"),
     )
     return JSONResponse({"candidates": candidates})
+
+
+@app.post("/api/listings/{listing_id}/documents")
+async def api_upload_document(
+    listing_id: int,
+    file: UploadFile = File(...),
+    doc_type: str = Form("Autre"),
+) -> JSONResponse:
+    existing = get_listing(listing_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Annonce introuvable")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Fichier vide")
+
+    doc_meta = save_uploaded_document(
+        listing_id=listing_id,
+        filename=file.filename or "document.bin",
+        content=content,
+        doc_type=doc_type,
+    )
+
+    # Recalculate financials and scoring if taxe fonciere or energy hints were detected
+    updated_listing = get_listing(listing_id) or {}
+    settings = get_settings()
+    fin = compute_financials(updated_listing, updated_listing.get("enrichment", {}), settings)
+    sco = compute_scoring_and_dealbreakers(updated_listing, updated_listing.get("enrichment", {}), fin, settings)
+    save_listing(
+        {
+            "finance": fin,
+            "scoring": sco,
+            "score_total": sco["total_score"],
+            "dealbreakers_count": len(sco["dealbreakers"]),
+            "true_monthly_cost": fin["true_monthly_cost"],
+        },
+        listing_id=listing_id,
+    )
+    final_listing = get_listing(listing_id)
+    return JSONResponse({"success": True, "document": doc_meta, "listing": final_listing})
+
+
+@app.get("/api/listings/{listing_id}/documents/{doc_id}/download")
+async def api_download_document(listing_id: int, doc_id: str):
+    res = get_document_file(listing_id, doc_id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Document introuvable sur le disque")
+    file_path, original_filename = res
+    return FileResponse(
+        path=str(file_path),
+        filename=original_filename,
+        media_type="application/octet-stream",
+    )
+
+
+@app.delete("/api/listings/{listing_id}/documents/{doc_id}")
+async def api_delete_document(listing_id: int, doc_id: str) -> JSONResponse:
+    ok = remove_document(listing_id, doc_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Document introuvable")
+    updated = get_listing(listing_id)
+    return JSONResponse({"deleted": True, "listing": updated})
+

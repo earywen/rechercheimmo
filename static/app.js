@@ -297,6 +297,67 @@ function renderDetail(item) {
     )
     .join("");
 
+  const documents = item.documents || [];
+  const documentsHtml =
+    documents.length === 0
+      ? `<div style="font-size:0.86rem; color:var(--ink-muted); font-style:italic; padding:0.75rem 0;">
+          Aucun document déposé pour ce bien. Déposez un DPE officiel, un avis de taxe foncière ou une facture pour confronter l'annonce.
+         </div>`
+      : `<div class="documents-list">
+          ${documents
+            .map((doc) => {
+              const sizeKb = Math.round((doc.size_bytes || 0) / 1024);
+              const sizeLabel = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} Mo` : `${sizeKb} Ko`;
+              const hints = doc.detected_hints || {};
+              let hintsBadges = "";
+              if (hints.taxe_fonciere) {
+                hintsBadges += `<span class="tag tag-ok">Taxe Foncière : ${hints.taxe_fonciere} €/an</span>`;
+              }
+              if (hints.dpe_letter) {
+                hintsBadges += `<span class="tag tag-ok">DPE extrait : ${hints.dpe_letter}${hints.dpe_kwh ? ` (${hints.dpe_kwh} kWh/m²/an)` : ""}</span>`;
+              }
+              if (hints.facture_energie_an) {
+                hintsBadges += `<span class="tag tag-ok">Facture annuelle : ${hints.facture_energie_an} €</span>`;
+              }
+
+              const hasText = (doc.extracted_chars || 0) > 0;
+              const snippet = doc.extracted_snippet || "";
+
+              return `
+                <div class="document-row">
+                  <div class="document-main">
+                    <div class="document-header-line">
+                      <span class="document-badge">${doc.doc_type || "Autre"}</span>
+                      <span class="document-name">${doc.filename}</span>
+                      <span class="document-meta">${sizeLabel} · ${doc.uploaded_at ? doc.uploaded_at.slice(0, 10) : ""}</span>
+                      ${hasText ? `<span class="tag" style="font-size:0.7rem; padding:0.1rem 0.35rem;">Texte extrait (${doc.extracted_chars} car.)</span>` : ""}
+                    </div>
+                    ${hintsBadges ? `<div class="document-hints">${hintsBadges}</div>` : ""}
+                    ${
+                      snippet
+                        ? `
+                      <details style="margin-top:0.35rem; font-size:0.8rem; color:var(--ink-muted);">
+                        <summary style="cursor:pointer; color:var(--accent);">Aperçu du texte extrait</summary>
+                        <pre style="white-space:pre-wrap; font-family:monospace; font-size:0.75rem; background:var(--surface-subtle); padding:0.4rem; border-radius:4px; margin-top:0.25rem; max-height:150px; overflow-y:auto;">${snippet.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
+                      </details>
+                    `
+                        : ""
+                    }
+                  </div>
+                  <div class="document-actions">
+                    <a class="btn btn-sm" href="/api/listings/${item.id}/documents/${doc.id}/download" download title="Télécharger le fichier">
+                      📥 Télécharger
+                    </a>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteListingDocument(${item.id}, '${doc.id}')" title="Supprimer ce document">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>`;
+
   const eduSummary = edu.summary || {};
   const collegesRows = (edu.colleges || []).slice(0, 4).map((c) => {
     const brevetTxt = c.brevet_reussite_pct
@@ -421,8 +482,8 @@ function renderDetail(item) {
           <span class="tab-count">${eduSummary.total_count || 0} étab.</span>
         </button>
         <button type="button" role="tab" class="tab-btn" data-tab="tab-visite" aria-selected="false" onclick="switchDossierTab('tab-visite')">
-          4. Visite &amp; Notes
-          <span class="tab-count">${rawChecklist.length} pts</span>
+          4. Visite &amp; Documents
+          <span class="tab-count">${documents.length} doc${documents.length > 1 ? "s" : ""} · ${rawChecklist.length} pts</span>
         </button>
       </nav>
 
@@ -831,28 +892,66 @@ function renderDetail(item) {
         </div>
       </section>
 
-      <!-- ONGLET 4 : CHECKLIST DE VISITE & NOTES DU COUPLE -->
+      <!-- ONGLET 4 : CHECKLIST DE VISITE, NOTES & COFFRE-FORT DOCUMENTS -->
       <section id="tab-visite" role="tabpanel" class="tab-panel">
         <div class="editorial-grid">
+          <!-- Colonne Gauche : Questions agence & Notes -->
           <div class="editorial-section">
             <div class="section-header">
-              <h3>Questions à poser à l'agence &amp; Points à vérifier</h3>
+              <h3>Questions à poser à l'agence &amp; Points de vigilance</h3>
               <span class="tag">Interactif</span>
             </div>
-            <div style="display:flex; flex-direction:column;">
+            <div style="display:flex; flex-direction:column; margin-bottom:1.25rem;">
               ${checklistItems}
             </div>
-          </div>
 
-          <div class="editorial-section">
             <div class="section-header">
               <h3>Notes Personnelles du Couple</h3>
               <span class="tag">Sauvegarde auto</span>
             </div>
             <div class="form-group">
               <label for="visitNotesField">Ressenti général, luminosité, bruit perçu sur place, retour de Madame et Monsieur :</label>
-              <textarea id="visitNotesField" rows="8" onchange="updateFinancialField(${item.id}, 'user_notes', this.value)" placeholder="Notez ici vos observations pendant l'appel ou la visite...">${item.user_notes || ""}</textarea>
+              <textarea id="visitNotesField" rows="5" onchange="updateFinancialField(${item.id}, 'user_notes', this.value)" placeholder="Notez ici vos observations pendant l'appel ou la visite...">${item.user_notes || ""}</textarea>
             </div>
+          </div>
+
+          <!-- Colonne Droite : Coffre-fort Documents Vendeur & Ingestion IA -->
+          <div class="editorial-section">
+            <div class="section-header">
+              <h3>Pièces &amp; Documents Officiels</h3>
+              <span class="tag tag-ok">Ingéré par l'IA</span>
+            </div>
+            <p style="font-size:0.86rem; color:var(--ink-muted); margin-bottom:0.75rem;">
+              Déposez les pièces fournies par le propriétaire ou l'agence (DPE officiel, taxe foncière, factures d'énergie, diagnostics amiante/élec, devis). Le texte est automatiquement extrait et injecté dans l'audit IA (Gemini Pro) pour confronter l'annonce et recalculer vos mensualités réelles.
+            </p>
+
+            <div class="dropzone-container">
+              <div style="display:flex; gap:0.5rem; align-items:center;">
+                <label for="docTypeSelect" style="font-size:0.82rem; font-weight:600; white-space:nowrap; color:var(--ink);">Type de pièce :</label>
+                <select id="docTypeSelect" style="flex:1; padding:0.4rem 0.5rem; font-size:0.84rem; background:var(--bg); border:1px solid var(--border-strong); border-radius:6px; color:var(--ink);">
+                  <option value="DPE">DPE complet (Diagnostic Performance Énergétique)</option>
+                  <option value="Taxe Foncière">Avis de Taxe Foncière (Imposition)</option>
+                  <option value="Facture Énergie">Facture d'Énergie annuelle (EDF / Engie)</option>
+                  <option value="Diagnostics">Diagnostics Techniques (Amiante / Élec / Plomb)</option>
+                  <option value="Devis / Travaux">Devis d'Artisans ou Travaux réalisés</option>
+                  <option value="PV AG / Copro">PV d'Assemblée Générale / Copropriété</option>
+                  <option value="Autre" selected>Autre justificatif</option>
+                </select>
+              </div>
+
+              <div class="dropzone-box" id="documentDropzone" onclick="document.getElementById('docFileInput').click()">
+                <span class="dropzone-icon">📄</span>
+                <div class="dropzone-prompt">Glissez-déposez une pièce ici ou cliquez pour parcourir</div>
+                <div class="dropzone-hint">PDF, TXT, images (jusqu'à 25 Mo) · Extraction automatique de texte</div>
+                <input type="file" id="docFileInput" style="display:none;" onchange="onDocumentFileSelected(${item.id}, this.files)" />
+              </div>
+            </div>
+
+            <div class="section-header" style="margin-top:1rem; border-top:1px solid var(--border); padding-top:0.75rem;">
+              <h3>Documents Enregistrés (${documents.length})</h3>
+              ${documents.length > 0 ? `<button type="button" class="btn btn-primary btn-sm" onclick="triggerDeepAiAudit(${item.id})" title="Relance l'audit agy en confrontant ces pièces">⚡ Relancer l'Audit IA avec ces pièces</button>` : ""}
+            </div>
+            ${documentsHtml}
           </div>
         </div>
       </section>
@@ -860,6 +959,7 @@ function renderDetail(item) {
   `;
 
   initPropertyMap(item);
+  setupDropzoneDragAndDrop(item.id);
   if (CURRENT_TAB && CURRENT_TAB !== "tab-synthese") {
     switchDossierTab(CURRENT_TAB);
   }
@@ -1035,6 +1135,94 @@ async function removeListing(id) {
   await fetch(`/api/listings/${id}`, { method: "DELETE" });
   CURRENT_ID = null;
   await loadInitialData();
+}
+
+/* Documents & Vault Management */
+async function onDocumentFileSelected(listingId, files) {
+  if (!files || files.length === 0) return;
+  const file = files[0];
+  const typeSelect = document.getElementById("docTypeSelect");
+  const docType = typeSelect ? typeSelect.value : "Autre";
+  await uploadDocumentFile(listingId, file, docType);
+}
+
+async function uploadDocumentFile(listingId, file, docType) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("doc_type", docType);
+
+  const dropzonePrompt = document.querySelector("#documentDropzone .dropzone-prompt");
+  if (dropzonePrompt) dropzonePrompt.textContent = "Téléversement et extraction de texte en cours...";
+
+  try {
+    const res = await fetch(`/api/listings/${listingId}/documents`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      alert("Erreur lors de l'enregistrement du document.");
+      return;
+    }
+    const data = await res.json();
+    if (data.listing) {
+      ALL_LISTINGS = ALL_LISTINGS.map((x) => (x.id === listingId ? data.listing : x));
+      renderSidebar();
+      renderDetail(data.listing);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erreur de connexion lors du téléversement.");
+  }
+}
+
+async function deleteListingDocument(listingId, docId) {
+  if (!confirm("Supprimer définitivement ce document ?")) return;
+  try {
+    const res = await fetch(`/api/listings/${listingId}/documents/${docId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      alert("Erreur lors de la suppression.");
+      return;
+    }
+    const data = await res.json();
+    if (data.listing) {
+      ALL_LISTINGS = ALL_LISTINGS.map((x) => (x.id === listingId ? data.listing : x));
+      renderSidebar();
+      renderDetail(data.listing);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erreur lors de la suppression.");
+  }
+}
+
+function setupDropzoneDragAndDrop(listingId) {
+  const dz = document.getElementById("documentDropzone");
+  if (!dz) return;
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    dz.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dz.classList.add("dragover");
+    });
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    dz.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dz.classList.remove("dragover");
+    });
+  });
+
+  dz.addEventListener("drop", (e) => {
+    const dt = e.dataTransfer;
+    if (dt && dt.files && dt.files.length > 0) {
+      onDocumentFileSelected(listingId, dt.files);
+    }
+  });
 }
 
 /* Event Listeners */

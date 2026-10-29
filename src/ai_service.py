@@ -219,6 +219,23 @@ def build_heuristic_audit(
     educ = neigh.get("education", {})
     apprec = neigh.get("appreciation", {})
 
+    docs = listing.get("documents") or []
+    ad_dec = [
+        "Vérifiez la concordance entre la surface annoncée et la surface habitable réelle du DPE ADEME.",
+        (
+            f"Parcelle cadastrale identifiée : Section {cad['section']} n°{cad['numero']} ({cad['contenance_m2']} m²), zone PLU {cad.get('plu_zone', 'U')}."
+            if cad.get("parcel_found") and cad.get("section") and cad.get("numero")
+            else (
+                f"Parcelle cadastrale identifiée : Section {cad.get('section', '')} n°{cad.get('numero', '')} ({cad.get('contenance_m2', 0)} m²), zone PLU {cad.get('plu_zone', 'U')}."
+                if cad.get("section")
+                else f"Parcelle cadastrale : adresse géocodée sur la commune, zone PLU {cad.get('plu_zone', 'U')}."
+            )
+        ),
+    ]
+    if docs:
+        doc_names = ", ".join(f"{d.get('doc_type', 'Doc')} ({d.get('filename')})" for d in docs[:3])
+        ad_dec.append(f"Documents officiels fournis : {len(docs)} pièce(s) prise(s) en compte ({doc_names}).")
+
     return {
         "engine": "Synthèse Open Data + Règles Métier (Prêt pour Audit IA Approfondi `agy`)",
         "executive_summary": (
@@ -230,18 +247,7 @@ def build_heuristic_audit(
         "neighborhood_verdict": f"{socio.get('classe_prosperite', 'Secteur résidentiel')} ({socio.get('nom', listing.get('city'))}) : revenu médian {socio.get('revenu_median_uc', 0):,} €/an, {socio.get('part_cadres_pct', 0)}% de cadres. {socio.get('profil_socio', '')}".replace(",", " "),
         "education_verdict": f"{educ.get('summary', {}).get('ips_verdict', 'Offre scolaire locale diversifiée')} ({len(educ.get('maternelles_and_elementaires', []))} écoles, {len(educ.get('colleges', []))} collèges à proximité).",
         "appreciation_verdict": f"{apprec.get('verdict', 'Valorisation stable')} (Tendance 5 ans : {apprec.get('tendance_dvf_5ans_pct', 0):+}%). {apprec.get('land_reserve', {}).get('commentaire', '')}",
-        "ad_decryption": [
-            "Vérifiez la concordance entre la surface annoncée et la surface habitable réelle du DPE ADEME.",
-            (
-                f"Parcelle cadastrale identifiée : Section {cad['section']} n°{cad['numero']} ({cad['contenance_m2']} m²), zone PLU {cad.get('plu_zone', 'U')}."
-                if cad.get("parcel_found") and cad.get("section") and cad.get("numero")
-                else (
-                    f"Parcelle cadastrale identifiée : Section {cad.get('section', '')} n°{cad.get('numero', '')} ({cad.get('contenance_m2', 0)} m²), zone PLU {cad.get('plu_zone', 'U')}."
-                    if cad.get("section")
-                    else f"Parcelle cadastrale : adresse géocodée sur la commune, zone PLU {cad.get('plu_zone', 'U')}."
-                )
-            ),
-        ],
+        "ad_decryption": ad_dec,
         "photo_observations": [],
         "works_breakdown": works_items,
         "works_total_min": total_min,
@@ -266,11 +272,16 @@ async def run_agy_deep_audit(
     if not Path(AGY_BIN).exists():
         return base_audit
 
+    from src.document_service import format_documents_for_audit_prompt
+
     # Prepare compact context for agy prompt
     dvf_summary = {
         k: enrichment.get("dvf", {}).get(k)
         for k in ("median_price_m2", "q25_price_m2", "q75_price_m2", "listing_price_m2", "diff_vs_median_pct", "verdict", "estimated_fair_price", "count")
     }
+    docs_list = listing.get("documents") or []
+    documents_section = format_documents_for_audit_prompt(docs_list)
+
     context_payload = {
         "bien": {
             "titre": listing.get("title"),
@@ -284,9 +295,19 @@ async def run_agy_deep_audit(
             "ges": listing.get("ges_letter"),
             "annee_construction": listing.get("construction_year"),
             "adresse": listing.get("address_resolved") or listing.get("address_input"),
+            "taxe_fonciere_connue": listing.get("taxe_fonciere"),
             "description": listing.get("description"),
             "photos": (listing.get("photos") or [])[:6],
         },
+        "documents_transmis_par_vendeur": [
+            {
+                "nom": d.get("filename"),
+                "type": d.get("doc_type"),
+                "indices": d.get("detected_hints", {}),
+                "extrait": (d.get("extracted_text_full") or d.get("extracted_snippet") or "")[:4000],
+            }
+            for d in docs_list
+        ],
         "profil_couple": {
             "budget_cible": 250000,
             "apport": 80000,
@@ -325,7 +346,14 @@ async def run_agy_deep_audit(
         "- La qualité des écoles et le cadre pour la réussite des enfants (IPS, niveau académique)\n"
         "- Le potentiel de prise de valeur dans le temps (tendance DVF, grands projets comme le TEOR T5 / LNPN Saint-Sever, réserve foncière, valeur verte DPE)\n"
         "- La praticité au quotidien (commerces, santé, ville du quart d'heure)\n"
-        "N'utilise AUCUN outil externe : toutes les données Open Data ont déjà été collectées ci-dessous.\n\n"
+        + (
+            f"\n{documents_section}\n"
+            "DOCUMENTS OFFICIELS TRANSMIS : Tu DOIS t'appuyer en priorité sur les documents officiels transmis ci-dessus (DPE complet, avis d'imposition taxe foncière, factures réelles, diagnostics). "
+            "Valide ou dénonce les affirmations de l'annonce, pointe les écarts de chiffres (taxe foncière réelle vs estimée, conso réelle) et déduis les vrais postes de travaux à prévoir.\n"
+            if documents_section
+            else ""
+        )
+        + "N'utilise AUCUN outil externe : toutes les données Open Data ont déjà été collectées ci-dessous.\n\n"
         f"DONNÉES DU BIEN ET OPEN DATA :\n{json.dumps(context_payload, ensure_ascii=False)}\n\n"
         "Réponds UNIQUEMENT avec un objet JSON valide respectant exactement cette structure :\n"
         "{\n"

@@ -101,6 +101,7 @@ def init_db() -> None:
                 finance_json TEXT DEFAULT '{}',
                 scoring_json TEXT DEFAULT '{}',
                 ai_audit_json TEXT DEFAULT '{}',
+                documents_json TEXT DEFAULT '[]',
                 score_total INTEGER DEFAULT 0,
                 dealbreakers_count INTEGER DEFAULT 0,
                 madame_transit_min INTEGER DEFAULT 0,
@@ -111,6 +112,11 @@ def init_db() -> None:
             )
             """
         )
+        # Migration checks
+        cur_cols = [c[1] for c in conn.execute("PRAGMA table_info(listings)").fetchall()]
+        if "documents_json" not in cur_cols:
+            conn.execute("ALTER TABLE listings ADD COLUMN documents_json TEXT DEFAULT '[]'")
+
         # Seed default settings if not present
         cur = conn.execute("SELECT COUNT(*) as c FROM settings")
         if cur.fetchone()["c"] == 0:
@@ -146,12 +152,12 @@ def update_settings(new_settings: dict[str, Any]) -> dict[str, Any]:
 
 def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     d = dict(row)
-    for k in ("photos_json", "visit_checklist_json", "enrichment_json", "finance_json", "scoring_json", "ai_audit_json"):
+    for k in ("photos_json", "visit_checklist_json", "enrichment_json", "finance_json", "scoring_json", "ai_audit_json", "documents_json"):
         short_key = k.replace("_json", "")
         try:
-            d[short_key] = json.loads(d.get(k) or ("[]" if "list" in k or "photos" in k else "{}"))
+            d[short_key] = json.loads(d.get(k) or ("[]" if "list" in k or "photos" in k or "documents" in k else "{}"))
         except Exception:
-            d[short_key] = [] if ("list" in k or "photos" in k) else {}
+            d[short_key] = [] if ("list" in k or "photos" in k or "documents" in k) else {}
     return d
 
 
@@ -179,7 +185,7 @@ def save_listing(data: dict[str, Any], listing_id: int | None = None) -> dict[st
         "lat", "lon", "address_confidence", "description",
         "photos_json", "taxe_fonciere", "charges_annuelles", "travaux_estimes",
         "user_rating", "user_notes", "visit_checklist_json",
-        "enrichment_json", "finance_json", "scoring_json", "ai_audit_json",
+        "enrichment_json", "finance_json", "scoring_json", "ai_audit_json", "documents_json",
         "score_total", "dealbreakers_count", "madame_transit_min",
         "monsieur_drive_min", "true_monthly_cost",
     ]
@@ -190,6 +196,7 @@ def save_listing(data: dict[str, Any], listing_id: int | None = None) -> dict[st
         "finance": "finance_json",
         "scoring": "scoring_json",
         "ai_audit": "ai_audit_json",
+        "documents": "documents_json",
     }
     for obj_key, col_key in json_map.items():
         if obj_key in data and col_key not in data:
