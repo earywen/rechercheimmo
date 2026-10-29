@@ -78,22 +78,63 @@ def parse_raw_ad_text(text: str) -> dict[str, Any]:
     if not text:
         return out
 
-    # Price (e.g. 245 000 € or 245000€)
+    # 1. Price (e.g. 245 000 € or 245000€)
     m_price = re.search(r"(\d[\d\s\u00a0\u202f]{4,8})\s*€", text)
     if m_price:
         p_str = re.sub(r"\D", "", m_price.group(1))
         if p_str and 30000 <= int(p_str) <= 2500000:
             out["price"] = int(p_str)
 
-    # Surface habitable (e.g. 95 m² or 95,5 m2)
-    m_surf = re.search(r"(\d{2,3}(?:[.,]\d)?)\s*m(?:²|2)\b", text, re.IGNORECASE)
-    if m_surf:
-        out["surface_m2"] = float(m_surf.group(1).replace(",", "."))
-
-    # Terrain / Jardin (e.g. terrain de 450 m² or parcelle de 500 m²)
-    m_land = re.search(r"(?:terrain|parcelle|jardin)[^\d]{0,25}(\d{2,5})\s*m(?:²|2)", text, re.IGNORECASE)
+    # 2. Terrain / Jardin (detect first so we don't confuse land size with living surface)
+    m_land = re.search(
+        r"(?:surface\s+totale\s+du\s+terrain|surface\s+terrain|terrain\s*:\s*|terrain\s+de\s+|parcelle\s+de\s+|jardin\s+de\s+)[^\d]{0,15}(\d{2,5})\s*m(?:²|2)",
+        text,
+        re.IGNORECASE,
+    )
     if m_land:
         out["land_m2"] = float(m_land.group(1))
+    else:
+        m_land_fb = re.search(r"(?:terrain|parcelle|jardin)[^\d]{0,25}(\d{2,5})\s*m(?:²|2)", text, re.IGNORECASE)
+        if m_land_fb:
+            out["land_m2"] = float(m_land_fb.group(1))
+
+    land_val = out.get("land_m2")
+
+    # 3. Surface habitable with strict priorities:
+    # Priority A: Explicit "Surface habitable", "Loi Carrez", or "habitable"
+    m_hab = re.search(r"(?:surface\s+habitable|loi\s+carrez|habitable)[^\d]{0,25}(\d{2,3}(?:[.,]\d)?)\s*m(?:²|2)?\b", text, re.IGNORECASE)
+    if m_hab:
+        out["surface_m2"] = float(m_hab.group(1).replace(",", "."))
+
+    # Priority B: "Maison 3 pièces 93 m²" or "3 pièces 93m²"
+    if not out.get("surface_m2"):
+        m_pieces_surf = re.search(r"\d{1,2}\s*pi[èe]ces?[^\d]{1,20}(\d{2,3}(?:[.,]\d)?)\s*m(?:²|2)?\b", text, re.IGNORECASE)
+        if m_pieces_surf:
+            cand = float(m_pieces_surf.group(1).replace(",", "."))
+            if cand != land_val:
+                out["surface_m2"] = cand
+
+    # Priority C: Total price / price per m² (e.g. 249 000 € and 2 677 €/m² -> 93 m²)
+    if not out.get("surface_m2") and out.get("price"):
+        m_ppm2 = re.search(r"(\d[\d\s\u00a0\u202f]{3,5})\s*€\s*(?:par|\/)\s*m[²2]", text, re.IGNORECASE)
+        if m_ppm2:
+            ppm2 = float(re.sub(r"\D", "", m_ppm2.group(1)))
+            if ppm2 > 500:
+                calc_surf = round(out["price"] / ppm2, 1)
+                if 20 <= calc_surf <= 400:
+                    out["surface_m2"] = calc_surf
+
+    # Priority D: First occurrence that is not equal to land_val
+    if not out.get("surface_m2"):
+        all_surfs = [
+            float(x.replace(",", "."))
+            for x in re.findall(r"(\d{2,3}(?:[.,]\d)?)\s*m(?:²|2)\b", text, re.IGNORECASE)
+        ]
+        valid_surfs = [s for s in all_surfs if land_val is None or s != land_val]
+        if valid_surfs:
+            out["surface_m2"] = valid_surfs[0]
+        elif all_surfs:
+            out["surface_m2"] = all_surfs[0]
 
     # Rooms & Bedrooms
     m_rooms = re.search(r"(\d{1,2})\s*pi[èe]ces?", text, re.IGNORECASE)
