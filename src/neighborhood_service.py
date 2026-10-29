@@ -403,23 +403,35 @@ async def fetch_complete_education_trajectory(lat: float, lon: float, city: str 
             out["higher_education_campus"] = [
                 {
                     "nom": "Campus Santé / Médecine & Pharmacie (Rouen CHU / Martainville)",
-                    "acces": "TEOR T1, T2, T3, T4 arrêt CHU Charles Nicolle",
+                    "commune": "Rouen",
+                    "type": "Pôle Universitaire Santé",
                     "filiere": "Médecine, Pharmacie, Biologie, Soins infirmiers",
+                    "acces": "TEOR T1, T2, T3, T4 arrêt CHU Charles Nicolle",
+                    "access_info": "TEOR T1, T2, T3, T4 arrêt CHU Charles Nicolle",
                 },
                 {
                     "nom": "Campus Mont-Saint-Aignan (Université de Rouen Normandie & NEOMA)",
-                    "acces": "TEOR T1 & nouvelle ligne T5, bus F2",
+                    "commune": "Mont-Saint-Aignan",
+                    "type": "Campus Principal & Grande École",
                     "filiere": "Lettres, Sciences Humaines, NEOMA Business School, STAPS",
+                    "acces": "TEOR T1 & nouvelle ligne T5, bus F2",
+                    "access_info": "TEOR T1 & nouvelle ligne T5, bus F2",
                 },
                 {
                     "nom": "Campus Pasteur (Rouen Rive Droite Ouest)",
-                    "acces": "Lignes TEOR T1, T2, T3 arrêt Pasteur",
+                    "commune": "Rouen",
+                    "type": "Faculté de Droit & Économie",
                     "filiere": "Faculté de Droit, Économie et Gestion",
+                    "acces": "Lignes TEOR T1, T2, T3 arrêt Pasteur",
+                    "access_info": "Lignes TEOR T1, T2, T3 arrêt Pasteur",
                 },
                 {
                     "nom": "Technopôle du Madrillet (Saint-Étienne-du-Rouvray)",
+                    "commune": "Saint-Étienne-du-Rouvray",
+                    "type": "Pôle d'Ingénieurs & Sciences",
+                    "filiere": "INSA Rouen Normandie, ESIGELEC, UFR Sciences",
                     "acces": "Métro Terminus Technopôle & Ligne F6",
-                    "filiere": "INSA Rouen Normandie, ESIGELEC, UFR Sciences, Pôle d'ingénieurs",
+                    "access_info": "Métro Terminus Technopôle & Ligne F6",
                 },
             ]
 
@@ -475,7 +487,9 @@ def evaluate_property_appreciation_potential(
     if any(k in itinerary_text for k in ("t5", "kindarena", "flaubert", "colbert", "mont-saint-aignan")) or any(c in city.lower() for c in ("mont-saint-aignan", "déville", "petit-quevilly")):
         catalysts.append({
             "projet": "Nouvelle ligne TEOR T5 (Mise en service 2025)",
+            "title": "Nouvelle ligne TEOR T5 (Mise en service 2025)",
             "impact": "Forte valorisation : liaison transversale directe Nord-Sud sans passer par le Théâtre des Arts.",
+            "description": "Forte valorisation : liaison transversale directe Nord-Sud sans passer par le Théâtre des Arts.",
             "potentiel": "+4% à +7% de surcote d'accessibilité",
         })
 
@@ -483,7 +497,9 @@ def evaluate_property_appreciation_potential(
     if any(c in city.lower() for c in ("rouen", "sotteville", "petit-quevilly", "saint-sever")):
         catalysts.append({
             "projet": "Pôle Gare Rouen Saint-Sever & LNPN (Ligne Nouvelle Paris-Normandie)",
+            "title": "Pôle Gare Rouen Saint-Sever & LNPN (Ligne Nouvelle Paris-Normandie)",
             "impact": "Requalification majeure de la Rive Gauche à horizon 2030+ (hub multimodal TGV/TER, bureaux, logements neufs).",
+            "description": "Requalification majeure de la Rive Gauche à horizon 2030+ (hub multimodal TGV/TER, bureaux, logements neufs).",
             "potentiel": "Catalyseur patrimonial majeur à moyen/long terme",
         })
 
@@ -491,7 +507,9 @@ def evaluate_property_appreciation_potential(
     if any(c in city.lower() for c in ("saint-étienne-du-rouvray", "sotteville", "petit-couronne", "oissel")):
         catalysts.append({
             "projet": "Développement du Technopôle du Madrillet",
+            "title": "Développement du Technopôle du Madrillet",
             "impact": "Concentration croissante d'ingénieurs, chercheurs et laboratoires d'innovation automobile/matériaux.",
+            "description": "Concentration croissante d'ingénieurs, chercheurs et laboratoires d'innovation automobile/matériaux.",
             "potentiel": "Demande locative et familiale pérenne",
         })
 

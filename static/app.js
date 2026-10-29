@@ -299,14 +299,15 @@ function renderDetail(item) {
 
   const eduSummary = edu.summary || {};
   const collegesRows = (edu.colleges || []).slice(0, 4).map((c) => {
-    const brv = c.brevet || {};
-    const brevetTxt = brv.taux_reussite ? `${brv.taux_reussite}% réussite (${brv.taux_mentions || 0}% mentions)` : "DNB n.c.";
+    const brevetTxt = c.brevet_reussite_pct
+      ? `${c.brevet_reussite_pct}% réussite (${c.brevet_mentions_pct || 0}% mentions)`
+      : (c.brevet?.taux_reussite ? `${c.brevet.taux_reussite}% réussite` : "DNB n.c.");
     return `
       <tr>
         <td><strong>${c.nom}</strong><br/><small style="color:var(--ink-muted)">${c.statut || "Public"} · ${c.commune || ""}</small></td>
         <td><strong>${c.ips ? c.ips : "—"}</strong></td>
         <td><span class="tag tag-ok">${brevetTxt}</span></td>
-        <td>${c.distance_m} m</td>
+        <td>${c.distance_m || "?"} m</td>
       </tr>
     `;
   }).join("");
@@ -314,8 +315,8 @@ function renderDetail(item) {
   const schoolsRows = (edu.maternelles_and_elementaires || []).slice(0, 5).map((s) => `
     <tr>
       <td><strong>${s.nom}</strong><br/><small style="color:var(--ink-muted)">${s.statut || "Public"} · ${s.type || "École"}</small></td>
-      <td><strong>${s.ips ? s.ips : "—"}</strong> <small style="color:var(--ink-muted)">(${s.ips_label || ""})</small></td>
-      <td>${s.distance_m} m</td>
+      <td><strong>${s.ips ? s.ips : "—"}</strong> ${s.ips_label ? `<small style="color:var(--ink-muted)">(${s.ips_label})</small>` : ""}</td>
+      <td>${s.distance_m || "?"} m</td>
     </tr>
   `).join("");
 
@@ -323,21 +324,22 @@ function renderDetail(item) {
     <tr>
       <td><strong>${l.nom}</strong><br/><small style="color:var(--ink-muted)">${l.statut || "Public"} · ${l.commune || ""}</small></td>
       <td><strong>${l.ips ? l.ips : "—"}</strong></td>
-      <td>${l.distance_m} m</td>
+      <td>${l.distance_m || "?"} m</td>
     </tr>
   `).join("");
 
   const campusList = (edu.higher_education_campus || []).map((cp) => `
-    <li style="padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-size: 0.84rem;">
-      <strong>${cp.nom}</strong> <small style="color:var(--ink-muted)">(${cp.commune})</small><br/>
-      <span style="color:var(--ink-muted);">${cp.type} · Accès : ${cp.access_info}</span>
+    <li style="padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 0.84rem;">
+      <strong>${cp.nom}</strong> ${cp.commune ? `<small style="color:var(--ink-muted)">(${cp.commune})</small>` : ""}<br/>
+      <span style="color:var(--ink-muted);">${cp.filiere || cp.type || "Enseignement supérieur"} · <em>Accès : ${cp.acces || cp.access_info || "Réseau Astuce"}</em></span>
     </li>
   `).join("");
 
   const catalystsHtml = (apprec.catalysts || []).map((cat) => `
-    <li style="padding: 0.45rem 0; border-bottom: 1px solid var(--border); font-size: 0.86rem;">
-      <strong>${cat.title} :</strong> ${cat.description}
-      <span class="tag tag-ok" style="margin-left:0.35rem;">${cat.impact}</span>
+    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.86rem; line-height: 1.45;">
+      <strong>${cat.projet || cat.title || "Projet urbain"} :</strong>
+      ${cat.impact || cat.description || ""}
+      ${cat.potentiel ? `<span class="tag tag-ok" style="margin-left:0.4rem; display:inline-block; font-size:0.75rem;">${cat.potentiel}</span>` : ""}
     </li>
   `).join("");
 
