@@ -33,7 +33,13 @@ def _parse_gtfs_sec(t_str: str) -> int | None:
 def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.087764) -> None:
     """Build a fast SQLite summary of Astuce GTFS stops, routes, and morning peak travel times to Madame's work."""
     if ASTUCE_DB_PATH.exists() and ASTUCE_DB_PATH.stat().st_size > 50_000:
-        return
+        try:
+            with sqlite3.connect(str(ASTUCE_DB_PATH)) as conn:
+                conn.execute("SELECT transfer_min FROM astuce_stops LIMIT 1")
+                return
+        except Exception:
+            pass
+
     if not GTFS_ZIP_PATH.exists():
         return
 
@@ -43,7 +49,7 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
         with z.open("routes.txt") as f:
             for r in csv.DictReader(io.TextIOWrapper(f, "utf-8-sig")):
                 routes[r["route_id"]] = {
-                    "short_name": r.get("route_short_name", ""),
+                    "short_name": r.get("route_short_name", "") or r["route_id"],
                     "long_name": r.get("route_long_name", ""),
                     "type": r.get("route_type", "3"),
                     "color": r.get("route_color", "0055A4"),
@@ -57,8 +63,7 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
 
         # 3. Stops
         stops: dict[str, dict[str, Any]] = {}
-        dest_stops: dict[str, float] = {}  # stop_id -> walk_minutes_to_target
-        hub_stops: dict[str, str] = {}  # stop_id -> hub_name (Gare Rue Verte, Théâtre des Arts, Vieux Marché, Palais de Justice)
+        dest_stops: dict[str, tuple[str, float]] = {}  # stop_id -> (stop_name, walk_minutes_to_target)
 
         with z.open("stops.txt") as f:
             for r in csv.DictReader(io.TextIOWrapper(f, "utf-8-sig")):
@@ -77,15 +82,12 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                     "lon": slon,
                     "dist_target_m": round(dist_target),
                 }
-                # 34 rue Cauchoise is within 650m of Vieux Marché, Gare Rue Verte, Palais de Justice, Théâtre des Arts, Cauchoise
+                # 34 rue Cauchoise is within 700m of Cauchoise, Vieux Marché, Square Verdrel, Palais de Justice, Théâtre des Arts, Belges, Gare-Rue Verte
                 if dist_target <= 700:
                     walk_min = (dist_target * 1.25) / 78.0  # ~4.7 km/h with urban street factor 1.25
-                    dest_stops[sid] = walk_min
-                if any(h in sname.lower() for h in ("théâtre des arts", "theatre des arts", "gare-rue verte", "gare rue verte", "palais de justice", "vieux marché", "cauchoise", "boulingrin", "hôtel de ville", "hotel de ville")):
-                    hub_stops[sid] = sname
+                    dest_stops[sid] = (sname, round(walk_min, 1))
 
-        # 4. Scan stop_times for morning window (07:15 to 09:15 -> 26100 to 33300 sec)
-        # Group stop sequences per trip
+        # 4. Scan stop_times for morning peak window (07:00 to 09:30 -> 25200 to 34200 sec)
         trip_stops: dict[str, list[tuple[int, str, int]]] = defaultdict(list)
         stop_routes_set: dict[str, set[str]] = defaultdict(set)
 
@@ -98,57 +100,70 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                     rshort = routes.get(rid, {}).get("short_name") or rid
                     stop_routes_set[sid].add(rshort)
                 sec = _parse_gtfs_sec(r.get("departure_time") or r.get("arrival_time") or "")
-                if sec is None or not (25200 <= sec <= 34200):  # 07:00 - 09:30
+                if sec is None or not (25200 <= sec <= 34200):
                     continue
                 seq = int(r.get("stop_sequence") or 0)
                 trip_stops[tid].append((seq, sid, sec))
 
-        # Compute best direct ride time from any stop to dest_stops, and to hub_stops
-        best_direct_to_dest: dict[str, tuple[float, str, str]] = {}  # sid -> (total_ride_plus_dest_walk_min, line_name, dest_stop_name)
-        best_to_hub: dict[str, tuple[float, str, str]] = {}  # sid -> (ride_min_to_hub, line_name, hub_stop_name)
-
-        for tid, seq_list in trip_stops.items():
-            if len(seq_list) < 2:
-                continue
-            seq_list.sort(key=lambda x: x[0])
+        # 5. Direct from any stop to any dest_stop
+        best_direct: dict[str, tuple[float, str, str]] = {}  # sid -> (total_transit_plus_dest_walk_min, line_name, dest_name)
+        for tid, slist in trip_stops.items():
+            slist.sort(key=lambda x: x[0])
             rid = trip_route.get(tid, "")
             rshort = routes.get(rid, {}).get("short_name", rid)
+            dest_indices = [(idx, sid, sec) for idx, (_, sid, sec) in enumerate(slist) if sid in dest_stops]
+            if not dest_indices:
+                continue
+            for d_idx, dsid, d_sec in dest_indices:
+                dname, dwalk = dest_stops[dsid]
+                for i in range(d_idx):
+                    orig_sid = slist[i][1]
+                    orig_sec = slist[i][2]
+                    ride_m = (d_sec - orig_sec) / 60.0
+                    tot = ride_m + dwalk
+                    if orig_sid not in best_direct or tot < best_direct[orig_sid][0]:
+                        best_direct[orig_sid] = (round(tot, 1), rshort, dname)
 
-            # Find if this trip hits any dest_stop or hub_stop
-            dest_hits = [(idx, sid, sec) for idx, (_, sid, sec) in enumerate(seq_list) if sid in dest_stops]
-            hub_hits = [(idx, sid, sec) for idx, (_, sid, sec) in enumerate(seq_list) if sid in hub_stops]
+        # 6. Real 1-transfer connections
+        # Leg 2 from transfer station X to dest_stop D
+        leg2_by_stop = defaultdict(list)
+        for tid, slist in trip_stops.items():
+            slist.sort(key=lambda x: x[0])
+            rid = trip_route.get(tid, "")
+            rshort = routes.get(rid, {}).get("short_name", rid)
+            dest_indices = [(idx, sid, sec) for idx, (_, sid, sec) in enumerate(slist) if sid in dest_stops]
+            if not dest_indices:
+                continue
+            for d_idx, dsid, d_sec in dest_indices:
+                dname, dwalk = dest_stops[dsid]
+                for i in range(d_idx):
+                    xsid = slist[i][1]
+                    x_sec = slist[i][2]
+                    leg2_by_stop[xsid].append((x_sec, d_sec, rshort, dname, dwalk))
 
-            if dest_hits:
-                for i, (_, orig_sid, orig_sec) in enumerate(seq_list):
-                    for d_idx, d_sid, d_sec in dest_hits:
-                        if d_idx > i and d_sec > orig_sec:
-                            ride_min = (d_sec - orig_sec) / 60.0
-                            total_min = ride_min + dest_stops[d_sid]
-                            prev = best_direct_to_dest.get(orig_sid)
-                            if prev is None or total_min < prev[0]:
-                                best_direct_to_dest[orig_sid] = (
-                                    round(total_min, 1),
-                                    rshort,
-                                    stops[d_sid]["stop_name"],
-                                )
-
-            if hub_hits:
-                for i, (_, orig_sid, orig_sec) in enumerate(seq_list):
-                    for h_idx, h_sid, h_sec in hub_hits:
-                        if h_idx > i and h_sec > orig_sec:
-                            ride_min = (h_sec - orig_sec) / 60.0
-                            prev = best_to_hub.get(orig_sid)
-                            if prev is None or ride_min < prev[0]:
-                                best_to_hub[orig_sid] = (
-                                    round(ride_min, 1),
-                                    rshort,
-                                    stops[h_sid]["stop_name"],
-                                )
+        best_transfer: dict[str, tuple[float, str, str, str, str]] = {}  # sid -> (total_transit_min, line1, xname, line2, dest_name)
+        for tid, slist in trip_stops.items():
+            slist.sort(key=lambda x: x[0])
+            rid = trip_route.get(tid, "")
+            r1 = routes.get(rid, {}).get("short_name", rid)
+            for i, (_, sid, orig_sec) in enumerate(slist):
+                for j in range(i + 1, len(slist)):
+                    xsid = slist[j][1]
+                    x_arr_sec = slist[j][2]
+                    if xsid in leg2_by_stop:
+                        xname = stops.get(xsid, {}).get("stop_name", "")
+                        for (t_dep, t_arr, r2, dname, dwalk) in leg2_by_stop[xsid]:
+                            wait_s = t_dep - x_arr_sec
+                            if 180 <= wait_s <= 720:  # 3 to 12 min connection buffer
+                                transit_m = (t_arr - orig_sec) / 60.0 + dwalk
+                                if sid not in best_transfer or transit_m < best_transfer[sid][0]:
+                                    best_transfer[sid] = (round(transit_m, 1), r1, xname, r2, dname)
 
         conn = sqlite3.connect(str(ASTUCE_DB_PATH))
+        conn.execute("DROP TABLE IF EXISTS astuce_stops")
         conn.execute(
             """
-            CREATE TABLE IF NOT EXISTS astuce_stops (
+            CREATE TABLE astuce_stops (
                 stop_id TEXT PRIMARY KEY,
                 stop_name TEXT,
                 lat REAL,
@@ -157,21 +172,22 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                 direct_min REAL,
                 direct_line TEXT,
                 direct_arrival_stop TEXT,
-                hub_min REAL,
-                hub_line TEXT,
-                hub_stop_name TEXT
+                transfer_min REAL,
+                transfer_line1 TEXT,
+                transfer_station TEXT,
+                transfer_line2 TEXT,
+                transfer_arrival_stop TEXT
             )
             """
         )
-        conn.execute("DELETE FROM astuce_stops")
 
         rows_out = []
         for sid, sinfo in stops.items():
             lines_sorted = sorted(stop_routes_set.get(sid, set()))
             if not lines_sorted:
                 continue
-            d_info = best_direct_to_dest.get(sid, (None, "", ""))
-            h_info = best_to_hub.get(sid, (None, "", ""))
+            d_info = best_direct.get(sid, (None, "", ""))
+            t_info = best_transfer.get(sid, (None, "", "", "", ""))
             rows_out.append(
                 (
                     sid,
@@ -182,14 +198,16 @@ def ensure_astuce_index(target_lat: float = 49.44412, target_lon: float = 1.0877
                     d_info[0],
                     d_info[1],
                     d_info[2],
-                    h_info[0],
-                    h_info[1],
-                    h_info[2],
+                    t_info[0],
+                    t_info[1],
+                    t_info[2],
+                    t_info[3],
+                    t_info[4],
                 )
             )
 
         conn.executemany(
-            "INSERT INTO astuce_stops VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO astuce_stops VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rows_out,
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_astuce_lat_lon ON astuce_stops (lat, lon)")
@@ -225,18 +243,19 @@ async def compute_mobility(
                 "mode": "Marche directe",
                 "total_minutes": direct_walk_min,
                 "walk_to_stop_min": direct_walk_min,
-                "OriginStop": "Départ du bien",
+                "origin_stop": "Départ du bien",
                 "line": "À pied",
                 "transfers": 0,
-                "details": f"Marche directe jusqu'au 34 rue Cauchoise ({round(direct_walk_dist_m)} m)",
+                "details": f"Marche directe jusqu'au 34 rue Cauchoise ({round(direct_walk_dist_m)} m, ~{direct_walk_min} min)",
             }
         )
 
     if ASTUCE_DB_PATH.exists():
         conn = sqlite3.connect(str(ASTUCE_DB_PATH))
         conn.row_factory = sqlite3.Row
-        dlat = 1500 / 111000.0
-        dlon = 1500 / 72000.0
+        # Scan stops up to 1800m to catch high-speed TEOR terminus (e.g. Bernard Palissy T2) or Fast lines
+        dlat = 1800 / 111000.0
+        dlon = 1800 / 72000.0
         rows = conn.execute(
             """
             SELECT * FROM astuce_stops
@@ -249,7 +268,7 @@ async def compute_mobility(
         seen_names: set[str] = set()
         for r in rows:
             dist_m = haversine_m(lat, lon, r["lat"], r["lon"])
-            if dist_m > 1200:
+            if dist_m > 1600:
                 continue
             walk_min = round((dist_m * 1.25) / 78.0, 1)
             lines = json.loads(r["lines_json"] or "[]")
@@ -269,7 +288,7 @@ async def compute_mobility(
 
             # Direct line to 34 rue Cauchoise area
             if r["direct_min"] is not None:
-                tot = round(walk_min + 3.0 + float(r["direct_min"]))  # +3 min average wait time at peak
+                tot = round(walk_min + 3.0 + float(r["direct_min"]))  # +3 min average departure wait
                 best_options.append(
                     {
                         "mode": "Astuce Direct",
@@ -280,13 +299,12 @@ async def compute_mobility(
                         "arrival_stop": r["direct_arrival_stop"],
                         "line": r["direct_line"],
                         "transfers": 0,
-                        "details": f"{round(walk_min)} min à pied jusqu'à « {r['stop_name']} » → Ligne {r['direct_line']} direct jusqu'à « {r['direct_arrival_stop']} » puis marche jusqu'au 34 rue Cauchoise",
+                        "details": f"{round(walk_min)} min à pied jusqu'à « {r['stop_name']} » ({round(dist_m)} m) → Ligne {r['direct_line']} direct jusqu'à « {r['direct_arrival_stop']} » ({round(r['direct_min'])} min trajet+marche)",
                     }
                 )
-            # 1-transfer option via Rouen center hub (Théâtre des Arts / Gare Rue Verte / Boulingrin)
-            elif r["hub_min"] is not None:
-                # Hub to 34 rue Cauchoise takes ~8 min (transfer TEOR/Métro + short walk)
-                tot = round(walk_min + 4.0 + float(r["hub_min"]) + 8.0)
+            # 1-transfer option via real connection station
+            if r["transfer_min"] is not None:
+                tot = round(walk_min + 3.0 + float(r["transfer_min"]))
                 best_options.append(
                     {
                         "mode": "Astuce (1 correspondance)",
@@ -294,10 +312,11 @@ async def compute_mobility(
                         "walk_to_stop_min": round(walk_min),
                         "distance_stop_m": round(dist_m),
                         "origin_stop": r["stop_name"],
-                        "arrival_stop": r["hub_stop_name"],
-                        "line": f"{r['hub_line']} + TEOR/Métro",
+                        "transfer_station": r["transfer_station"],
+                        "arrival_stop": r["transfer_arrival_stop"],
+                        "line": f"{r['transfer_line1']} + {r['transfer_line2']}",
                         "transfers": 1,
-                        "details": f"{round(walk_min)} min à pied jusqu'à « {r['stop_name']} » → Ligne {r['hub_line']} jusqu'au pôle « {r['hub_stop_name']} » + correspondance TEOR/Métro/Marche vers 34 rue Cauchoise",
+                        "details": f"{round(walk_min)} min à pied jusqu'à « {r['stop_name']} » ({round(dist_m)} m) → Ligne {r['transfer_line1']} jusqu'à « {r['transfer_station']} » puis Ligne {r['transfer_line2']} vers « {r['transfer_arrival_stop']} » ({round(r['transfer_min'])} min trajet+corresp)",
                     }
                 )
 

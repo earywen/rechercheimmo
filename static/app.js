@@ -395,7 +395,7 @@ function renderDetail(item) {
         </div>
         <div class="metric-cell">
           <span class="metric-label">Trajet Madame (Astuce)</span>
-          <span class="metric-val" style="color:${mme.is_dealbreaker ? "var(--danger-ink)" : "var(--ok-ink)"};">${mme.duration_min || "?"} min</span>
+          <span class="metric-val" style="color:${mme.is_dealbreaker ? "var(--danger-ink)" : (mme.duration_min > 40 ? "var(--warn-ink)" : "var(--ok-ink)")};">${mme.duration_min || "?"} min</span>
           <span class="metric-sub">34 rue Cauchoise · Monsieur : ${mr.duration_min || "?"} min</span>
         </div>
         <div class="metric-cell">
@@ -733,14 +733,25 @@ function renderDetail(item) {
             <div class="commute-row">
               <div style="display:flex; justify-content:space-between; align-items:baseline;">
                 <strong>Madame (Transport Astuce → 34 rue Cauchoise, Rouen)</strong>
-                <span style="font-size:1.2rem; font-weight:800; color:${mme.is_dealbreaker ? "var(--danger-ink)" : "var(--ok-ink)"};">${mme.duration_min || "?"} min</span>
+                <span style="font-size:1.2rem; font-weight:800; color:${mme.is_dealbreaker ? "var(--danger-ink)" : (mme.duration_min > 40 ? "var(--warn-ink)" : "var(--ok-ink)")};">${mme.duration_min || "?"} min</span>
               </div>
               <p style="font-size:0.88rem; color:var(--ink);">
-                <strong>Itinéraire matin (8h30) :</strong> ${mme.best_itinerary ? mme.best_itinerary.details : "Calcul en cours"}
+                <strong>Itinéraire optimisé (pointe matin) :</strong> ${mme.best_itinerary ? mme.best_itinerary.details : "Calcul en cours"}<br/>
+                <small style="color:var(--ink-muted);"><em>Heures creuses / journée : compter 45 à 48 min selon les fréquences et la marche (source MyAstuce).</em></small>
               </p>
               ${
+                (mme.alternatives || []).length
+                  ? `<div style="font-size:0.82rem; color:var(--ink-muted); margin-top:0.35rem;">
+                      <strong>Autres options réseau Astuce :</strong>
+                      <ul style="padding-left:1.1rem; margin-top:0.2rem;">
+                        ${mme.alternatives.map((alt) => `<li>${alt.total_minutes} min : ${alt.details}</li>`).join("")}
+                      </ul>
+                    </div>`
+                  : ""
+              }
+              ${
                 (mme.nearby_astuce_stops || []).length
-                  ? `<div style="font-size:0.8rem; color:var(--ink-muted);">
+                  ? `<div style="font-size:0.8rem; color:var(--ink-muted); margin-top:0.35rem;">
                       <strong>Arrêts à pied :</strong>
                       ${mme.nearby_astuce_stops
                         .slice(0, 4)
