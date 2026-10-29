@@ -146,7 +146,19 @@ async def detective_dpe_lookup(
 
 async def fetch_cadastre_and_plu(lat: float, lon: float) -> dict[str, Any]:
     """Fetch exact cadastral parcel & urbanism zone from IGN APICarto."""
-    geom_str = json.dumps({"type": "Point", "coordinates": [lon, lat]})
+    # APICarto /cadastre/parcelle requires a polygon/bbox to intersect, not a single point
+    delta = 0.00018  # ~18 meters bounding box around address
+    bbox_poly = {
+        "type": "Polygon",
+        "coordinates": [[
+            [lon - delta, lat - delta],
+            [lon + delta, lat - delta],
+            [lon + delta, lat + delta],
+            [lon - delta, lat + delta],
+            [lon - delta, lat - delta],
+        ]],
+    }
+    geom_str = json.dumps(bbox_poly)
     out: dict[str, Any] = {
         "parcel_found": False,
         "parcel_id": "",
@@ -164,8 +176,24 @@ async def fetch_cadastre_and_plu(lat: float, lon: float) -> dict[str, Any]:
             if r_cad.status_code == 200:
                 feats = r_cad.json().get("features", [])
                 if feats:
-                    f0 = feats[0]
-                    props = f0.get("properties", {})
+                    best_f = None
+                    min_dist = float("inf")
+                    for f in feats:
+                        geom = f.get("geometry") or {}
+                        pts = []
+                        if geom.get("type") == "Polygon":
+                            pts = geom.get("coordinates", [[]])[0]
+                        elif geom.get("type") == "MultiPolygon":
+                            pts = geom.get("coordinates", [[[]]])[0][0]
+                        if pts:
+                            c_lon = sum(p[0] for p in pts) / len(pts)
+                            c_lat = sum(p[1] for p in pts) / len(pts)
+                            d = haversine_m(lat, lon, c_lat, c_lon)
+                            if d < min_dist:
+                                min_dist = d
+                                best_f = f
+                    selected_f = best_f or feats[0]
+                    props = selected_f.get("properties", {})
                     out.update(
                         {
                             "parcel_found": True,
@@ -174,10 +202,13 @@ async def fetch_cadastre_and_plu(lat: float, lon: float) -> dict[str, Any]:
                             "numero": props.get("numero", ""),
                             "contenance_m2": int(props.get("contenance") or 0),
                             "commune": props.get("nom_com", ""),
-                            "parcel_geometry": f0.get("geometry"),
+                            "parcel_geometry": selected_f.get("geometry"),
                         }
                     )
-            r_gpu = await client.get("https://apicarto.ign.fr/api/gpu/zone-urba", params={"geom": geom_str})
+            r_gpu = await client.get(
+                "https://apicarto.ign.fr/api/gpu/zone-urba",
+                params={"geom": json.dumps({"type": "Point", "coordinates": [lon, lat]})},
+            )
             if r_gpu.status_code == 200:
                 gfeats = r_gpu.json().get("features", [])
                 if gfeats:

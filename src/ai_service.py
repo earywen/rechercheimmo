@@ -232,7 +232,15 @@ def build_heuristic_audit(
         "appreciation_verdict": f"{apprec.get('verdict', 'Valorisation stable')} (Tendance 5 ans : {apprec.get('tendance_dvf_5ans_pct', 0):+}%). {apprec.get('land_reserve', {}).get('commentaire', '')}",
         "ad_decryption": [
             "Vérifiez la concordance entre la surface annoncée et la surface habitable réelle du DPE ADEME.",
-            f"Parcelle cadastrale identifiée : Section {cad.get('section', '?')} n°{cad.get('numero', '?')} ({cad.get('contenance_m2', '?')} m²), zone PLU {cad.get('plu_zone', 'U')}.",
+            (
+                f"Parcelle cadastrale identifiée : Section {cad['section']} n°{cad['numero']} ({cad['contenance_m2']} m²), zone PLU {cad.get('plu_zone', 'U')}."
+                if cad.get("parcel_found") and cad.get("section") and cad.get("numero")
+                else (
+                    f"Parcelle cadastrale identifiée : Section {cad.get('section', '')} n°{cad.get('numero', '')} ({cad.get('contenance_m2', 0)} m²), zone PLU {cad.get('plu_zone', 'U')}."
+                    if cad.get("section")
+                    else f"Parcelle cadastrale : adresse géocodée sur la commune, zone PLU {cad.get('plu_zone', 'U')}."
+                )
+            ),
         ],
         "photo_observations": [],
         "works_breakdown": works_items,
