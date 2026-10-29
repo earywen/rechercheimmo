@@ -162,8 +162,8 @@ async def _analyze_listing_pipeline(listing_id: int, run_deep_ai: bool = False) 
     else:
         ai_audit = build_heuristic_audit(merged_listing, enrichment, temp_finance, temp_scoring)
 
-    # If user didn't manually set works budget, use midpoint of AI works breakdown if reasonable
-    if int(merged_listing.get("travaux_estimes") or 0) == 0 and ai_audit.get("works_total_min"):
+    # Align travaux_estimes with AI audit realistic works breakdown (e.g. decoration/customization vs major renovation)
+    if ai_audit.get("works_total_min") is not None:
         est_w = round((int(ai_audit.get("works_total_min", 0)) + int(ai_audit.get("works_total_max", 0))) / 2, -2)
         updates["travaux_estimes"] = int(est_w)
         merged_listing["travaux_estimes"] = int(est_w)

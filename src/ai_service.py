@@ -49,35 +49,134 @@ def build_heuristic_audit(
     # Estimate works by DPE and description keywords
     desc_low = (listing.get("description") or "").lower()
     works_items: list[dict[str, Any]] = []
-    if dpe_letter in ("E", "F", "G"):
-        cost_iso = round(surface * (280 if dpe_letter in ("F", "G") else 140), -2)
+
+    # Check for "turnkey" / move-in ready signals
+    is_ready_to_move = any(
+        phrase in desc_low
+        for phrase in (
+            "poser vos meubles",
+            "poser ses meubles",
+            "prêt à vivre",
+            "prête à vivre",
+            "refaite avec amour",
+            "très bon état",
+            "tres bon etat",
+            "bon état",
+            "bon etat",
+            "peu de travaux",
+            "aucun travaux",
+            "aucuns travaux",
+            "refaite à neuf",
+        )
+    )
+
+    if dpe_letter in ("F", "G"):
+        cost_iso = round(surface * 280, -2)
         works_items.append(
             {
-                "poste": f"Isolation thermique & chauffage (DPE {dpe_letter})",
-                "urgence": "Haute" if dpe_letter in ("F", "G") else "Moyenne",
+                "poste": f"Rénovation énergétique globale (Passoire DPE {dpe_letter})",
+                "urgence": "Haute",
                 "budget_min": int(cost_iso * 0.8),
                 "budget_max": int(cost_iso * 1.25),
-                "commentaire": "Isolation combles/murs ou remplacement du système de chauffage pour réduire la facture annuelle.",
+                "commentaire": "Obligation d'audit énergétique et isolation majeure pour sortir du statut de passoire thermique.",
             }
         )
-    if any(w in desc_low for w in ("rafraîchir", "rafraichir", "travaux", "potentiel", "rénover", "renover", "à moderniser")):
+    elif dpe_letter == "E" and not is_ready_to_move:
+        cost_iso = round(surface * 120, -2)
         works_items.append(
             {
-                "poste": "Rafraîchissement intérieur (peintures, sols, cuisine/SDB)",
+                "poste": "Amélioration énergétique (DPE E)",
                 "urgence": "Moyenne",
-                "budget_min": int(surface * 180),
-                "budget_max": int(surface * 350),
-                "commentaire": "Mots-clés de rénovation détectés dans le descriptif de l'annonce.",
+                "budget_min": int(cost_iso * 0.7),
+                "budget_max": int(cost_iso * 1.1),
+                "commentaire": "Complément d'isolation des combles ou optimisation du chauffage.",
             }
         )
-    if "simple vitrage" in desc_low or "fenêtres" in desc_low:
+
+    # Windows / Joinery: only if explicit single glazing or explicit need to replace
+    has_double_glazing = any(
+        w in desc_low
+        for w in (
+            "double vitrage",
+            "fenêtres pvc",
+            "fenetre pvc",
+            "huisseries pvc",
+            "menuiseries pvc",
+            "porte alu",
+            "pvc double",
+        )
+    )
+    if (
+        "simple vitrage" in desc_low
+        or "fenêtres à changer" in desc_low
+        or "fenetres a changer" in desc_low
+    ) and not has_double_glazing:
         works_items.append(
             {
                 "poste": "Menuiseries (passage en double vitrage PVC/Alu)",
                 "urgence": "Haute",
-                "budget_min": 6000,
-                "budget_max": 12000,
-                "commentaire": "Vérifier l'état de toutes les huisseries et volets lors de la visite.",
+                "budget_min": 5000,
+                "budget_max": 10000,
+                "commentaire": "Remplacement du simple vitrage existant par du double vitrage isolant.",
+            }
+        )
+
+    # Interior decoration / works
+    has_heavy_works = any(
+        w in desc_low
+        for w in (
+            "gros travaux",
+            "à rénover entièrement",
+            "a renover entierement",
+            "rénovation totale",
+            "renovation totale",
+            "travaux importants",
+            "plateau brut",
+        )
+    )
+    has_refresh_needed = any(
+        w in desc_low
+        for w in (
+            "à rafraîchir",
+            "a rafraichir",
+            "à moderniser",
+            "a moderniser",
+            "prévoir rafraîchissement",
+            "prevoir rafraichissement",
+            "remettre au goût",
+            "remettre au gout",
+        )
+    ) and not any(p in desc_low for p in ("peu de travaux", "aucun travaux", "aucuns travaux"))
+
+    if has_heavy_works:
+        works_items.append(
+            {
+                "poste": "Rénovation lourde / Second œuvre",
+                "urgence": "Haute",
+                "budget_min": int(surface * 400),
+                "budget_max": int(surface * 700),
+                "commentaire": "Travaux conséquents mentionnés dans l'annonce (électricité, plomberie, cloisons, sols).",
+            }
+        )
+    elif has_refresh_needed:
+        works_items.append(
+            {
+                "poste": "Rafraîchissement intérieur (peintures, sols, sanitaires)",
+                "urgence": "Moyenne",
+                "budget_min": int(surface * 120),
+                "budget_max": int(surface * 220),
+                "commentaire": "Modernisation et rafraîchissement des pièces de vie.",
+            }
+        )
+    elif is_ready_to_move:
+        # Move-in ready: simple personalized decoration envelope
+        works_items.append(
+            {
+                "poste": "Personnalisation & Décoration (mise au goût)",
+                "urgence": "Optionnelle",
+                "budget_min": 3000,
+                "budget_max": 5000,
+                "commentaire": "Bien prêt à vivre / en bon état général : simple budget de mise au goût (peintures, petite déco).",
             }
         )
 
