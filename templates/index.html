@@ -28,6 +28,7 @@
       <button class="btn" id="btnOpenCompareModal">Comparateur</button>
       <button class="btn" id="btnOpenDetectiveModal">Détective DPE</button>
       <button class="btn" id="btnOpenSettingsModal">Critères</button>
+      <button class="btn" id="btnOpenBookmarkletModal" title="Capturer depuis un autre PC">⭐ Bouton Magique</button>
       <button class="btn" id="btnThemeToggle" aria-label="Basculer entre le thème clair et le thème sombre">Mode sombre</button>
     </div>
   </header>
@@ -285,6 +286,34 @@
         <button type="submit" class="btn btn-primary">Enregistrer</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- MODAL 5: Bookmarklet / Bouton Magique (Zéro installation pour un autre PC) -->
+  <dialog id="bookmarkletDialog" closedby="any" aria-labelledby="bmDialogTitle" style="width: min(600px, 94vw);">
+    <div class="dialog-header">
+      <h2 id="bmDialogTitle">Bouton Magique (Capture 1-Clic sans extension)</h2>
+      <button class="btn btn-sm" data-close-dialog="bookmarkletDialog">Fermer</button>
+    </div>
+    <div style="font-size:0.9rem; color:var(--ink); line-height:1.55;">
+      <p style="margin-bottom:0.75rem;">
+        Vous consultez des annonces depuis un autre PC sans l'extension Chrome ? Ce <strong>favori magique</strong> fonctionne partout (Chrome, Edge, Safari, Firefox) <strong>sans rien installer</strong> !
+      </p>
+
+      <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:1.1rem; text-align:center; margin:1rem 0;">
+        <div style="font-size:0.85rem; color:var(--ink-muted); margin-bottom:0.6rem;">
+          👉 <strong>Glissez ce bouton</strong> vers votre barre de favoris :
+        </div>
+        <a id="bookmarkletLink" class="btn btn-primary" href="#" style="display:inline-block; padding:0.65rem 1.3rem; font-weight:700; cursor:grab;" onclick="event.preventDefault(); alert('Glissez ce bouton vers votre barre de favoris (Ctrl+Maj+B) !');">
+          📥 Capturer vers Recherche Immo
+        </a>
+      </div>
+
+      <ol style="padding-left:1.3rem; font-size:0.86rem; color:var(--ink-muted); display:flex; flex-direction:column; gap:0.45rem;">
+        <li>Affichez la barre des favoris de votre navigateur (raccourci <code>Ctrl+Maj+B</code> ou <code>Cmd+Maj+B</code>).</li>
+        <li>Glissez le bouton bleu ci-dessus directement dans votre barre de favoris.</li>
+        <li>Quand vous visitez une annonce sur LeBonCoin, SeLoger ou Bien'ici, <strong>cliquez simplement sur ce favori</strong> : l'annonce et toutes ses photos HD sont capturées instantanément vers votre serveur !</li>
+      </ol>
+    </div>
   </dialog>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

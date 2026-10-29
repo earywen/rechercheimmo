@@ -1339,6 +1339,14 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("detectiveDialog").showModal();
   });
 
+  const bmBtn = document.getElementById("btnOpenBookmarkletModal");
+  if (bmBtn) {
+    bmBtn.addEventListener("click", () => {
+      initBookmarkletLink();
+      document.getElementById("bookmarkletDialog").showModal();
+    });
+  }
+
   document.getElementById("btnOpenCompareModal").addEventListener("click", () => {
     renderComparisonTable();
     document.getElementById("compareDialog").showModal();
@@ -1577,5 +1585,66 @@ async function onUploadPhotosSelected(listingId, files) {
   } catch (err) {
     console.error(err);
     alert("Erreur de connexion lors de l'envoi des photos.");
+  }
+}
+
+function initBookmarkletLink() {
+  const srv = window.location.origin;
+  const code = `javascript:(function(){
+    var s='${srv}';
+    var t=document.body?document.body.innerText:'';
+    var p='',mP=t.match(/(\\d[\\d\\s\\u00a0\\u202f]{4,8})\\s*€/);
+    if(mP) p=Number(mP[1].replace(/\\D/g,''))||'';
+    var sU='',mS=t.match(/(\\d{2,3}(?:[.,]\\d)?)\\s*m(?:²|2)\\b/i);
+    if(mS) sU=Number(mS[1].replace(',','.'))||'';
+    var l='',mL=t.match(/(?:terrain|parcelle|jardin)[^\\d]{0,25}(\\d{2,5})\\s*m(?:²|2)/i);
+    if(mL) l=Number(mL[1])||'';
+    var b='',mB=t.match(/(\\d{1,2})\\s*chambres?/i);
+    if(mB) b=Number(mB[1])||'';
+    var d='',mD=t.match(/\\bDPE\\s*[:\\-]?\\s*([A-G])\\b/i);
+    if(mD) d=mD[1].toUpperCase();
+    var c='',mC=t.match(/\\b((?:76|27)\\d{3})\\b/);
+    if(mC) c=mC[1];
+    var ph=[];
+    var add=function(u){if(u&&typeof u==='string'&&u.startsWith('http')&&ph.indexOf(u)===-1&&u.indexOf('avatar')===-1&&u.indexOf('logo')===-1)ph.push(u);};
+    try{
+      var nd=document.getElementById('__NEXT_DATA__');
+      if(nd){
+        var js=JSON.parse(nd.textContent);
+        (js.props?.pageProps?.ad?.images?.urls_large||js.props?.pageProps?.ad?.images?.urls||[]).forEach(add);
+        (js.props?.pageProps?.classified?.photos||[]).forEach(function(x){add(typeof x==='string'?x:x.url||x.largeUrl);});
+      }
+    }catch(e){}
+    if(ph.length===0){
+      document.querySelectorAll('[data-qa-id*="image"] img,[class*="gallery"] img,[class*="carousel"] img,img[src*="lbcpb/images"],img[src*="photos.bienici.com"]').forEach(function(img){
+        add(img.currentSrc||img.src||img.getAttribute('data-src'));
+      });
+    }
+    var payload={
+      title:(document.title||'').slice(0,120),
+      source_url:window.location.href,
+      address_input:c?c+' ':'Rouen Métropole',
+      price:p||250000,
+      surface_m2:sU||0,
+      land_m2:l||0,
+      bedrooms:b||0,
+      dpe_letter:d||'',
+      description:t.slice(0,6000),
+      photos:ph.slice(0,30)
+    };
+    fetch(s+'/api/listings',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    }).then(function(r){return r.json();}).then(function(res){
+      alert('✅ Annonce envoyée à Recherche Immo ('+(res.photos?res.photos.length:ph.length)+' photos capturées) !');
+    }).catch(function(err){
+      alert('❌ Erreur de connexion vers '+s);
+    });
+  })();`;
+
+  const link = document.getElementById("bookmarkletLink");
+  if (link) {
+    link.href = code.replace(/\n\s*/g, " ");
   }
 }
